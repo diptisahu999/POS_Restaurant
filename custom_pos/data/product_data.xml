@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- ================= SOUPS ================= -->
+        <record id="product_thukpa_soup" model="product.template">
+            <field name="name">Thukpa Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">Hot &amp; Spicy Noodle Soup with Fresh Vegetables</field>
+        </record>
+
+        <record id="product_vegetable_manchow_soup" model="product.template">
+            <field name="name">Vegetable Manchow Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">A dark brown, hot and spicy Indo-Chinese soup</field>
+        </record>
+
+        <record id="product_vegetable_hot_sour_soup" model="product.template">
+            <field name="name">Vegetable Hot &amp; Sour Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">A spicy and tangy broth with finely chopped vegetables</field>
+        </record>
+
+        <record id="product_sweet_corn_soup" model="product.template">
+            <field name="name">Sweet Corn Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">A warm, slightly thick soup</field>
+        </record>
+
+        <record id="product_roasted_tomatoes_soup_with_basil" model="product.template">
+            <field name="name">Roasted Tomatoes Soup With Basil</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">Sweet &amp; Savoury Tomato Broth with Croutons</field>
+        </record>
+
+        <record id="product_cream_of_mushroom_soup" model="product.template">
+            <field name="name">Cream Of Mushroom Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">Creamy mushroom broth with cheesy dumplings</field>
+        </record>
+
+        <record id="product_broccoli_almond_soup" model="product.template">
+            <field name="name">Broccoli Almond Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">A healthy, creamy soup with broccoli and rich almonds</field>
+        </record>
+
+        <record id="product_tomato_soup" model="product.template">
+            <field name="name">Tomato Soup</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">A classic dish made primarily from tomatoes</field>
+        </record>
+
+        <record id="product_dal_dhaniya_shorba" model="product.template">
+            <field name="name">Dal Dhaniya Shorba</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_soups')])]"/>
+            <field name="description_sale">An Indian soup made with yellow moong dal, masoor dal, fresh coriander stems and whole spices</field>
+        </record>
+
+        <!-- ================= SALADS ================= -->
+        <record id="product_citrus_crunch_salad" model="product.template">
+            <field name="name">Citrus Crunch Salad</field>
+            <field name="list_price">225.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_salads')])]"/>
+            <field name="description_sale">Charred corn &amp; onion with orange maple dressing</field>
+        </record>
+
+        <record id="product_garden_green_salad" model="product.template">
+            <field name="name">Garden Green Salad</field>
+            <field name="list_price">225.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_salads')])]"/>
+            <field name="description_sale">Carrot, Cucumber, Tomato, Onion, Chilli &amp; Lemon</field>
+        </record>
+
+        <record id="product_som_tum_salad" model="product.template">
+            <field name="name">Som Tum Salad</field>
+            <field name="list_price">225.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_salads')])]"/>
+            <field name="description_sale">Raw papaya salad with Thai chilli &amp; peanuts</field>
+        </record>
+
+        <!-- ================= TRADITIONAL & ASIAN SPECIALS ================= -->
+        <record id="product_veg_club_sandwich" model="product.template">
+            <field name="name">Veg. Club Sandwich</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_specials')])]"/>
+            <field name="description_sale">Three-layer sandwich made with toasted bread, fresh vegetables, spreads, and often cheese</field>
+        </record>
+
+        <record id="product_bombay_sandwich" model="product.template">
+            <field name="name">Bombay Sandwich</field>
+            <field name="list_price">200.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_specials')])]"/>
+            <field name="description_sale">Soft white bread, butter, green coriander-mint chutney, and boiled potatoes</field>
+        </record>
+
+        <record id="product_veg_burger" model="product.template">
+            <field name="name">Veg Burger</field>
+            <field name="list_price">200.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_specials')])]"/>
+            <field name="description_sale">Vegetable patty inside a bun with lettuce, tomatoes, and sauces</field>
+        </record>
+
+        <record id="product_cheese_burger" model="product.template">
+            <field name="name">Cheese Burger</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_specials')])]"/>
+            <field name="description_sale">Vegetable and potato patty with a slice of cheese, crisp lettuce, and sliced tomatoes, served with tomato ketchup</field>
+        </record>
+
+        <record id="product_cheese_chilli_tossed" model="product.template">
+            <field name="name">Cheese Chilli Tossed</field>
+            <field name="list_price">175.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_specials')])]"/>
+            <field name="description_sale">Quick-baked canap&#233; made with a balanced combination of cheese &amp; chilli</field>
+        </record>
+
+        <!-- ================= PIZZA ================= -->
+        <record id="product_margherita" model="product.template">
+            <field name="name">Margherita</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pizza')])]"/>
+            <field name="description_sale">Classic pizza topped with rich tomato sauce, fresh mozzarella, and aromatic basil</field>
+        </record>
+
+        <record id="product_veggie_pizza" model="product.template">
+            <field name="name">Veggie Pizza</field>
+            <field name="list_price">230.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pizza')])]"/>
+            <field name="description_sale">Classic pizza topped with fresh vegetables, mozzarella cheese, and flavorful herbs</field>
+        </record>
+
+        <record id="product_paneer_tikka_pizza" model="product.template">
+            <field name="name">Paneer Tikka Pizza</field>
+            <field name="list_price">230.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pizza')])]"/>
+            <field name="description_sale">Classic pizza topped with smoky paneer tikka, onions, capsicum, mozzarella cheese, and aromatic herbs</field>
+        </record>
+
+        <!-- ================= ASIAN SELECTION ================= -->
+        <record id="product_teriyaki_temple_noodles" model="product.template">
+            <field name="name">Teriyaki Temple Noodles</field>
+            <field name="list_price">275.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_asian')])]"/>
+            <field name="description_sale">Noodles with vegetables in teriyaki sauce</field>
+        </record>
+
+        <record id="product_house_noodles" model="product.template">
+            <field name="name">House Noodles</field>
+            <field name="list_price">275.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_asian')])]"/>
+            <field name="description_sale">Wok-tossed noodles with vegetables</field>
+        </record>
+
+        <record id="product_butter_chilli_garlic_noodle" model="product.template">
+            <field name="name">Butter Chilli Garlic Noodle</field>
+            <field name="list_price">275.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_asian')])]"/>
+            <field name="description_sale">Noodles tossed in butter, chilli &amp; garlic</field>
+        </record>
+
+        <record id="product_traditional_red_thai_curry" model="product.template">
+            <field name="name">Traditional Red Thai Curry</field>
+            <field name="list_price">400.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_asian')])]"/>
+            <field name="description_sale">Steamed jasmine rice, vegetables &amp; tofu in Thai-spiced coconut curry (Red / Yellow / Green)</field>
+        </record>
+
+        <record id="product_classic_burnt_garlic_fried_rice" model="product.template">
+            <field name="name">Classic Burnt Garlic Fried Rice</field>
+            <field name="list_price">200.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_asian')])]"/>
+            <field name="description_sale">Jasmine rice tossed in sesame oil &amp; burnt garlic</field>
+        </record>
+
+        <!-- ================= APPETIZERS ================= -->
+        <record id="product_spicy_paneer_dumpling" model="product.template">
+            <field name="name">Spicy Paneer Dumpling</field>
+            <field name="list_price">300.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_appetizers')])]"/>
+            <field name="description_sale">Crispy dumplings stuffed with paneer served with spicy sauce</field>
+        </record>
+
+        <record id="product_spring_roll_thai_style" model="product.template">
+            <field name="name">Spring Roll Thai Style</field>
+            <field name="list_price">270.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_appetizers')])]"/>
+            <field name="description_sale">Traditional Thai wrap stuffed with juliennes of vegetables</field>
+        </record>
+
+        <record id="product_dry_manchurian" model="product.template">
+            <field name="name">Dry Manchurian</field>
+            <field name="list_price">220.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_appetizers')])]"/>
+            <field name="description_sale">Crispy deep-fried veg. balls tossed in a thick, sticky, and glossy umami sauce</field>
+        </record>
+
+        <record id="product_wok_tossed_dry_chilli_paneer" model="product.template">
+            <field name="name">Wok Tossed Dry Chilli Paneer</field>
+            <field name="list_price">275.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_appetizers')])]"/>
+            <field name="description_sale">Oriental spicy preparation of cottage cheese tossed with bell peppers and onions</field>
+        </record>
+
+        <!-- ================= DIM SUM APPETIZERS ================= -->
+        <record id="product_crispy_wonton" model="product.template">
+            <field name="name">Crispy Wonton</field>
+            <field name="list_price">300.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Crispy stuffed wontons</field>
+        </record>
+
+        <record id="product_dim_sum" model="product.template">
+            <field name="name">Dim Sum</field>
+            <field name="list_price">250.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">House Surprise Dim Sum – Chef's special assorted dim sum</field>
+        </record>
+
+        <record id="product_og_paneer_tikka" model="product.template">
+            <field name="name">OG Paneer Tikka</field>
+            <field name="list_price">350.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Paneer marinated in Indian spices</field>
+        </record>
+
+        <record id="product_tandoori_bharwan_mushrooms" model="product.template">
+            <field name="name">Tandoori Bharwan Mushrooms</field>
+            <field name="list_price">375.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Mushrooms stuffed with spices &amp; cheese</field>
+        </record>
+
+        <record id="product_dahi_ke_kebab" model="product.template">
+            <field name="name">Dahi Ke Kebab</field>
+            <field name="list_price">300.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Creamy kebab made with curd &amp; kataifi</field>
+        </record>
+
+        <record id="product_peri_peri_paneer_tikka" model="product.template">
+            <field name="name">Peri Peri Paneer Tikka</field>
+            <field name="list_price">350.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Paneer marinated in peri-peri sauce</field>
+        </record>
+
+        <record id="product_mutter_kaju_seekh_kebab" model="product.template">
+            <field name="name">Mutter Kaju Seekh Kebab</field>
+            <field name="list_price">375.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Matar, cashew &amp; peas kebabs</field>
+        </record>
+
+        <record id="product_house_chaap" model="product.template">
+            <field name="name">House Chaap</field>
+            <field name="list_price">275.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_dimsum')])]"/>
+            <field name="description_sale">Spicy tandoori chaap served with thecha</field>
+        </record>
+
+        <!-- ================= PASTA ================= -->
+        <record id="product_penne_alfredo_pasta" model="product.template">
+            <field name="name">Penne Alfredo Pasta</field>
+            <field name="list_price">350.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pasta')])]"/>
+            <field name="description_sale">Creamy white sauce pasta</field>
+        </record>
+
+        <record id="product_spaghetti_aglio_e_olio_pasta" model="product.template">
+            <field name="name">Spaghetti Aglio e Olio Pasta</field>
+            <field name="list_price">350.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pasta')])]"/>
+            <field name="description_sale">Spaghetti in olive oil, garlic &amp; parmesan</field>
+        </record>
+
+        <record id="product_penne_creamy_tomato_sauce_pasta" model="product.template">
+            <field name="name">Penne Creamy Tomato Sauce Pasta</field>
+            <field name="list_price">350.0</field>
+            <field name="available_in_pos">True</field>
+            <field name="pos_categ_ids" eval="[(6, 0, [ref('pos_category_pasta')])]"/>
+            <field name="description_sale">Penne in creamy tomato sauce</field>
+        </record>
+    </data>
+</odoo>
