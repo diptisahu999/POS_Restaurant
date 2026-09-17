@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="remove_login_footer" inherit_id="web.login_layout" name="Remove Login Footer">
+        <xpath expr="//div[hasclass('border-top')]" position="replace"/>
+    </template>
+</odoo>
