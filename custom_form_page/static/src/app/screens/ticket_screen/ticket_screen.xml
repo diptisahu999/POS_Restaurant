@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="custom_form_page.TicketScreen" t-inherit="point_of_sale.TicketScreen" t-inherit-mode="extension">
+        <xpath expr="//tr[hasclass('order-row')]//td[hasclass('address-cell')]" position="after">
+            <td class="align-middle text-center order-status-column">
+                <t t-set="statusVal" t-value="getOrderStatus(order)" />
+                <button type="button" t-on-click.stop="() => this.onCycleOrderStatus(order)"
+                    t-attf-class="btn btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 fw-bold rounded-pill text-capitalize {{
+                        statusVal === 'done' ? 'btn-success' :
+                        statusVal === 'preparing' ? 'btn-warning text-dark' :
+                        'btn-secondary text-white'
+                    }}"
+                    style="min-width: 105px; cursor: pointer;"
+                    title="Click to change order status">
+                    <i t-attf-class="fa {{
+                        statusVal === 'done' ? 'fa-check-circle' :
+                        statusVal === 'preparing' ? 'fa-hourglass-half' :
+                        'fa-clock-o'
+                    }}"/>
+                    <span t-esc="statusVal" />
+                    <i class="fa fa-caret-down ms-1" style="font-size: 0.75rem; opacity: 0.8;"/>
+                </button>
+            </td>
+        </xpath>
+        <xpath expr="//div[hasclass('mobileOrderList')]//div[hasclass('order-name')]" position="after">
+            <div class="p-2 d-flex align-items-center">
+                <t t-set="statusVal" t-value="getOrderStatus(order)" />
+                <button type="button" t-on-click.stop="() => this.onCycleOrderStatus(order)"
+                    t-attf-class="btn btn-sm d-inline-flex align-items-center gap-1 px-2 py-1 fw-bold rounded-pill text-capitalize {{
+                        statusVal === 'done' ? 'btn-success' :
+                        statusVal === 'preparing' ? 'btn-warning text-dark' :
+                        'btn-secondary text-white'
+                    }}">
+                    <i t-attf-class="fa {{
+                        statusVal === 'done' ? 'fa-check-circle' :
+                        statusVal === 'preparing' ? 'fa-hourglass-half' :
+                        'fa-clock-o'
+                    }}"/>
+                    <span t-esc="statusVal" />
+                    <i class="fa fa-caret-down ms-1" style="font-size: 0.75rem; opacity: 0.8;"/>
+                </button>
+            </div>
+        </xpath>
+    </t>
+</templates>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="custom_form_page.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <xpath expr="//button[i[hasclass('fa-upload')]]" position="attributes">
+            <attribute name="t-att-disabled">this.pos.getOrder().isEmpty() || (this.pos.config.module_pos_restaurant and !this.pos.getOrder()?.table_id)</attribute>
+            <attribute name="t-att-title">this.pos.config.module_pos_restaurant and !this.pos.getOrder()?.table_id ? 'Please select a table to save order' : ''</attribute>
+        </xpath>
+    </t>
+
+    <t t-name="custom_form_page.ActionpadWidget" t-inherit="point_of_sale.ActionpadWidget" t-inherit-mode="extension">
+        <xpath expr="//button[i[hasclass('fa-upload')]]" position="attributes">
+            <attribute name="t-att-disabled">this.pos.getOrder().isEmpty() || (this.pos.config.module_pos_restaurant and !this.pos.getOrder()?.table_id)</attribute>
+            <attribute name="t-att-title">this.pos.config.module_pos_restaurant and !this.pos.getOrder()?.table_id ? 'Please select a table to save order' : ''</attribute>
+        </xpath>
+    </t>
+</templates>

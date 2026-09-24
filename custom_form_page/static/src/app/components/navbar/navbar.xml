@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="custom_form_page.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('table-button')]" position="before">
+            <button class="home-button btn btn-lg btn-light lh-lg" t-on-click="() => this.onClickHomeButton()">
+                <t t-if="!ui.isSmall">
+                    <span>Home</span>
+                </t>
+                <i t-else="" class="fa fa-fw fa-home" t-att-class="{'fa-lg' : !ui.isSmall}"/>
+            </button>
+        </xpath>
+    </t>
+</templates>
