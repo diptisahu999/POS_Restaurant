@@ -46,33 +46,21 @@ def _setup_custom_bill_payment_methods(env):
     elif not upi_pm.image:
         upi_pm.write({'image': UPI_ICON_SVG})
 
-    # 2. No Charge (NC) - replace or rename GC
+    # 2. No Charge (NC)
     nc_pm = PaymentMethod.search([
         ('name', '=', 'No Charge (NC)'),
         ('company_id', '=', company.id)
     ], limit=1)
 
     if not nc_pm:
-        # Check if legacy Gift Card exists to rename
-        gc_pm = PaymentMethod.search([
-            ('name', 'in', ['Gift Card (GC)', 'GC']),
-            ('company_id', '=', company.id)
-        ], limit=1)
-        if gc_pm:
-            gc_pm.write({
-                'name': 'No Charge (NC)',
-                'image': NC_ICON_SVG,
-            })
-            nc_pm = gc_pm
-        else:
-            nc_pm = PaymentMethod.create({
-                'name': 'No Charge (NC)',
-                'journal_id': bank_journal.id if bank_journal else False,
-                'company_id': company.id,
-                'payment_method_type': 'none',
-                'image': NC_ICON_SVG,
-            })
-    else:
+        nc_pm = PaymentMethod.create({
+            'name': 'No Charge (NC)',
+            'journal_id': bank_journal.id if bank_journal else False,
+            'company_id': company.id,
+            'payment_method_type': 'none',
+            'image': NC_ICON_SVG,
+        })
+    elif not nc_pm.image:
         nc_pm.write({'image': NC_ICON_SVG})
 
     # Link both to all active pos configs

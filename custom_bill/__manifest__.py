@@ -2,7 +2,7 @@
 {
     'name': 'Custom Restaurant Bill & Payments',
     'version': '1.0.0',
-    'summary': 'Prominent Table Number badge, UPI QR Code on restaurant bills, UPI / Online and Gift Card (GC) payment methods',
+    'summary': 'Prominent Table Number badge, UPI / Online and No Charge (NC) payment methods',
     'category': 'Point of Sale',
     'author': 'Techvizor',
     'license': 'LGPL-3',

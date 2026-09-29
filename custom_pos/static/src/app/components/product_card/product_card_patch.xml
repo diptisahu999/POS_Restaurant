@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="custom_pos.ProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
+        <!-- Hide the default corner badge -->
+        <xpath expr="//span[hasclass('product-cart-qty')]" position="replace"/>
+
+        <!-- Gracefully handle missing/broken image loading -->
+        <xpath expr="//div[hasclass('product-img')]/img" position="attributes">
+            <attribute name="onerror">this.style.display='none';</attribute>
+        </xpath>
+
+        <!-- Price and Quantity Stepper (+ / -) Section -->
+        <xpath expr="//div[hasclass('product-content')]" position="inside">
+            <div class="product-card-footer d-flex justify-content-between align-items-center w-100 mt-auto pt-2"
+                t-on-click.stop.prevent=""
+                t-on-mousedown.stop=""
+                t-on-touchstart.stop=""
+                t-on-pointerdown.stop="">
+
+                <!-- Price Section -->
+                <div class="product-card-price-block d-flex flex-column text-start">
+                    <span class="price-label text-muted">Price</span>
+                    <span class="price-val fw-bolder text-dark" t-esc="this.displayPrice"/>
+                </div>
+
+                <!-- Quantity Stepper Section -->
+                <div class="product-qty-stepper d-flex align-items-center">
+                    <t t-if="this.cartQty lt 1">
+                        <button class="btn btn-sm btn-custom-add rounded-pill px-3 py-1 d-flex align-items-center gap-1 shadow-sm"
+                            type="button"
+                            t-on-click.stop.prevent="this.onIncreaseQty"
+                            t-on-mousedown.stop=""
+                            t-on-touchstart.stop=""
+                            t-on-pointerdown.stop=""
+                            title="Add item">
+                            <i class="fa fa-plus"/>
+                            <span>Add</span>
+                        </button>
+                    </t>
+                    <t t-else="">
+                        <div class="qty-pill d-flex align-items-center rounded-pill border bg-white shadow-sm px-1 py-1">
+                            <!-- Minus or Trash Button -->
+                            <button t-if="this.cartQty === 1"
+                                class="btn btn-sm btn-stepper btn-stepper-trash text-danger d-flex align-items-center justify-content-center"
+                                type="button"
+                                t-on-click.stop.prevent="this.onDecreaseQty"
+                                t-on-mousedown.stop=""
+                                t-on-touchstart.stop=""
+                                t-on-pointerdown.stop=""
+                                title="Remove item">
+                                <i class="fa fa-trash-o"/>
+                            </button>
+                            <button t-else=""
+                                class="btn btn-sm btn-stepper btn-stepper-minus text-secondary d-flex align-items-center justify-content-center"
+                                type="button"
+                                t-on-click.stop.prevent="this.onDecreaseQty"
+                                t-on-mousedown.stop=""
+                                t-on-touchstart.stop=""
+                                t-on-pointerdown.stop=""
+                                title="Decrease quantity">
+                                <i class="fa fa-minus"/>
+                            </button>
+
+                            <!-- Quantity Count Display -->
+                            <span class="qty-number px-2 fw-bolder text-dark text-center" t-esc="this.cartQty"/>
+
+                            <!-- Plus Button -->
+                            <button class="btn btn-sm btn-stepper btn-stepper-plus bg-success text-white d-flex align-items-center justify-content-center rounded"
+                                type="button"
+                                t-on-click.stop.prevent="this.onIncreaseQty"
+                                t-on-mousedown.stop=""
+                                t-on-touchstart.stop=""
+                                t-on-pointerdown.stop=""
+                                title="Increase quantity">
+                                <i class="fa fa-plus"/>
+                            </button>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>
