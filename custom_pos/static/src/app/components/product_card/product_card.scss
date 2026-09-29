@@ -1,0 +1,194 @@
+/* Custom POS - Product Card Modern UI with High-Responsiveness Price & Quantity Stepper */
+
+/* Ensure comfortable grid columns so cards are not squished */
+.rightpane .product-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 12px !important;
+}
+
+.product {
+    border-radius: 14px !important;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    border: 1px solid #e2e8f0 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    min-height: 12.5rem;
+    display: flex !important;
+    flex-direction: column !important;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08) !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    .product-img {
+        overflow: hidden;
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+        background-color: #f1f5f9;
+        min-height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            transition: transform 0.25s ease;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        &:hover img {
+            transform: scale(1.03);
+        }
+    }
+
+    .product-content {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        flex-grow: 1;
+        padding: 8px 10px 10px 10px !important;
+        width: 100%;
+
+        .product-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.25;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    }
+
+    .product-card-footer {
+        border-top: 1px solid #f1f5f9;
+        margin-top: auto;
+        padding-top: 6px;
+
+        .product-card-price-block {
+            line-height: 1.1;
+
+            .price-label {
+                font-size: 0.65rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+                color: #64748b !important;
+            }
+
+            .price-val {
+                font-size: 1.12rem;
+                font-weight: 900;
+                color: #0f172a !important;
+                white-space: nowrap;
+            }
+        }
+
+        .product-qty-stepper {
+            touch-action: manipulation !important;
+            user-select: none !important;
+
+            .btn-custom-add {
+                background-color: #ecfdf5;
+                border: 1.5px solid #10b981;
+                color: #059669;
+                font-size: 0.82rem;
+                font-weight: 700;
+                padding: 4px 12px;
+                height: 32px;
+                white-space: nowrap;
+                touch-action: manipulation !important;
+                user-select: none !important;
+                transition: transform 0.08s ease, background-color 0.12s ease;
+
+                i {
+                    font-size: 0.75rem;
+                }
+
+                &:hover {
+                    background-color: #10b981;
+                    color: #ffffff;
+
+                    i {
+                        color: #ffffff !important;
+                    }
+                }
+
+                &:active {
+                    transform: scale(0.92);
+                }
+            }
+
+            .qty-pill {
+                background: #ffffff;
+                border: 1.5px solid #10b981 !important;
+                border-radius: 9999px !important;
+                padding: 2px 4px !important;
+                height: 32px;
+                gap: 2px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                touch-action: manipulation !important;
+                user-select: none !important;
+
+                .btn-stepper {
+                    width: 26px;
+                    height: 26px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    touch-action: manipulation !important;
+                    user-select: none !important;
+                    cursor: pointer;
+                    transition: transform 0.08s ease, background-color 0.12s ease;
+
+                    &:active {
+                        transform: scale(0.88);
+                    }
+
+                    &.btn-stepper-trash {
+                        background-color: #fee2e2;
+                        color: #ef4444 !important;
+
+                        &:hover {
+                            background-color: #fecaca;
+                        }
+                    }
+
+                    &.btn-stepper-minus {
+                        background-color: #f1f5f9;
+                        color: #475569;
+
+                        &:hover {
+                            background-color: #e2e8f0;
+                            color: #1e293b;
+                        }
+                    }
+
+                    &.btn-stepper-plus {
+                        background-color: #10b981 !important;
+                        color: #ffffff !important;
+
+                        &:hover {
+                            background-color: #059669 !important;
+                        }
+                    }
+                }
+
+                .qty-number {
+                    font-size: 0.95rem;
+                    font-weight: 800;
+                    color: #0f172a;
+                    min-width: 22px;
+                    user-select: none;
+                    pointer-events: none;
+                }
+            }
+        }
+    }
+}
