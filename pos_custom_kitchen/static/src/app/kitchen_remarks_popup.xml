@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.KitchenRemarksPopup">
+        <Dialog title="'Kitchen Order Remarks'">
+            <div>
+                <p class="text-muted mb-3" style="font-size:14px;">
+                    Add preparation remarks for each item before sending to kitchen:
+                </p>
+                <div style="max-height:380px; overflow-y:auto;">
+                    <t t-foreach="props.orderlines" t-as="line" t-key="this._getKey(line)">
+                        <div class="card mb-3 border" style="border-radius:8px;">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge rounded-pill me-2" style="background:#dc3545; font-size:12px; padding:4px 9px;">
+                                        <t t-esc="this.getLineQuantity(line)"/>x
+                                    </span>
+                                    <strong style="font-size:14px;">
+                                        <t t-esc="this.getLineDisplayName(line)"/>
+                                    </strong>
+                                </div>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light" style="font-size:13px;">Remarks</span>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="e.g. Make spicy, Less sweet, No onion..."
+                                        t-att-value="this.state.notes[this._getKey(line)] || ''"
+                                        t-on-input="(ev) => this.onNoteInput(this._getKey(line), ev)"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary me-2 px-4" t-on-click="() => this.cancel()">
+                    Cancel
+                </button>
+                <button class="btn btn-danger px-4 fw-bold" t-on-click="() => this.confirm()">
+                    Confirm &amp; Send to Kitchen
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>
