@@ -1,4 +1,4 @@
-/* Custom Bill - Restaurant Table Badge and UPI QR Styles */
+/* Custom Bill - Restaurant Table Badge, Payable Amount and No Charge (NC) Styles */
 
 .custom-bill-table-badge {
     background: #f8f9fa;
@@ -39,42 +39,43 @@
     }
 }
 
-.custom-bill-upi-box {
-    background: #ffffff;
-    border: 1.5px dashed #097939;
-    border-radius: 8px;
-    padding: 10px;
-    margin: 10px 0;
+.custom-bill-payable-section {
+    background: #f1f5f9;
+    border-top: 2px dashed #334155 !important;
+    border-bottom: 2px dashed #334155 !important;
+    padding: 8px 6px;
+    margin: 8px 0;
 
-    .upi-header {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #097939;
+    .payable-title {
+        font-size: 1.05rem;
+        font-weight: 800;
         letter-spacing: 0.5px;
+        color: #0f172a;
     }
 
-    .custom-bill-upi-qr {
-        width: 135px;
-        height: 135px;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 4px;
-        background: #ffffff;
+    .payable-amount {
+        font-size: 1.35rem;
+        font-weight: 900;
+        color: #0f172a;
     }
 
-    .upi-id-label {
-        font-size: 0.8rem;
+    .nc-breakdown {
+        font-size: 0.85rem;
+        border-top: 1px dotted #cbd5e1;
+        padding-top: 4px;
     }
+}
 
-    .upi-amount-label {
-        font-size: 0.9rem;
-        color: #111827;
-    }
+.custom-bill-nc-notice {
+    background: #fff5f5;
+    border: 1.5px solid #dc3545 !important;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 6px 0;
 
-    .upi-apps-note {
-        font-size: 9px;
-        color: #6b7280;
-        margin-top: 2px;
+    .nc-reason-line {
+        font-size: 0.85rem;
+        color: #212529;
     }
 }
 
@@ -94,15 +95,28 @@
         }
     }
 
-    .custom-bill-upi-box {
-        border: 1.5px dashed #000000 !important;
+    .custom-bill-payable-section {
+        background: transparent !important;
+        border-top: 2px dashed #000000 !important;
+        border-bottom: 2px dashed #000000 !important;
+        color: #000000 !important;
+
+        .payable-title,
+        .payable-amount {
+            color: #000000 !important;
+        }
+
+        .nc-breakdown {
+            border-top: 1px dashed #000000 !important;
+        }
+    }
+
+    .custom-bill-nc-notice {
+        border: 1.5px solid #000000 !important;
         background: transparent !important;
         color: #000000 !important;
 
-        .upi-header,
-        .upi-id-label,
-        .upi-amount-label,
-        .upi-apps-note {
+        .nc-reason-line {
             color: #000000 !important;
         }
     }
