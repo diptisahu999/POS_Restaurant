@@ -16,6 +16,11 @@
         'data/pos_category_data.xml',
         'data/product_data.xml',
     ],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'custom_pos/static/src/**/*',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="custom_bill.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <!-- Dedicated Prominent Table Number Badge below Header -->
+        <xpath expr="//ReceiptHeader" position="after">
+            <div t-if="hasTableInfo" class="custom-bill-table-badge text-center my-2 p-2 rounded">
+                <div class="table-badge-main">
+                    <span class="table-badge-prefix">TABLE</span>
+                    <span class="table-badge-number ms-1"><t t-esc="tableNumberFormatted"/></span>
+                </div>
+                <div class="table-badge-meta d-flex justify-content-center gap-3 mt-1">
+                    <span t-if="floorNameFormatted" class="meta-item">
+                        <i class="fa fa-map-marker me-1"/>Floor: <strong><t t-esc="floorNameFormatted"/></strong>
+                    </span>
+                    <span class="meta-item">
+                        <i class="fa fa-users me-1"/>Guests: <strong><t t-esc="guestsCount"/></strong>
+                    </span>
+                </div>
+            </div>
+        </xpath>
+
+        <!-- Dynamic Scannable UPI QR Code before footer -->
+        <xpath expr="//div[hasclass('before-footer')]" position="before">
+            <div t-if="showUpiQr" class="custom-bill-upi-box text-center my-3 p-2 rounded">
+                <div class="upi-header fw-bolder mb-1">
+                    <i class="fa fa-qrcode me-1 text-success"/>Scan &amp; Pay via UPI
+                </div>
+                <div t-if="upiQrCode" class="upi-qr-wrapper my-1">
+                    <img t-att-src="upiQrCode" alt="Scan to pay with UPI" class="custom-bill-upi-qr mx-auto d-block"/>
+                </div>
+                <div class="upi-id-label text-muted small mt-1">
+                    UPI ID: <span class="fw-bold text-dark"><t t-esc="order.config.upi_id"/></span>
+                </div>
+                <div class="upi-amount-label small fw-bold">
+                    To Pay: <t t-esc="formatCurrency(order.roundedPriceIncl || order.priceIncl)"/>
+                </div>
+                <div class="upi-apps-note text-muted">
+                    Google Pay / PhonePe / Paytm / Any UPI App
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>

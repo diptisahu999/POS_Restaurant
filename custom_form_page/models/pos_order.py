@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pyrefly: ignore [missing-import]
 from odoo import api, fields, models
 
 class PosOrder(models.Model):
@@ -10,6 +11,7 @@ class PosOrder(models.Model):
         ('done', 'Done'),
     ], string='Order Status', default='pending', index=True, copy=False)
 
+    @api.model
     def _process_order(self, order, existing_order):
         order_id = super()._process_order(order, existing_order)
         if order.get('order_status'):

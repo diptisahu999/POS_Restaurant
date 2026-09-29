@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_custom_bill" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.custom.bill</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_payment_section']" position="inside">
+                <setting id="custom_bill_pos_upi" string="UPI QR Code on Bill" help="Display a scannable dynamic UPI QR code on restaurant bills and receipts">
+                    <field name="pos_show_upi_qr_on_bill"/>
+                    <div class="content-group mt-2" invisible="not pos_show_upi_qr_on_bill">
+                        <div class="row">
+                            <label for="pos_upi_id" string="UPI ID / VPA" class="col-lg-3 o_light_label"/>
+                            <field name="pos_upi_id" placeholder="e.g. restaurant@upi or 9876543210@paytm"/>
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
