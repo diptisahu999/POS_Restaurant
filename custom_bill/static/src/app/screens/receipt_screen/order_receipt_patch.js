@@ -3,7 +3,6 @@
 import { OrderReceipt } from "@point_of_sale/app/screens/receipt_screen/receipt/order_receipt";
 import { ReceiptHeader } from "@point_of_sale/app/screens/receipt_screen/receipt/receipt_header/receipt_header";
 import { patch } from "@web/core/utils/patch";
-import { generateQRCodeDataUrl } from "@point_of_sale/utils";
 
 // Prevent duplicate unstyled tableName in ReceiptHeader since we render a prominent dedicated badge
 patch(ReceiptHeader.prototype, {
@@ -38,47 +37,50 @@ patch(OrderReceipt.prototype, {
         return this.order.customer_count || (this.order.getCustomerCount ? this.order.getCustomerCount() : 1);
     },
 
-    get isPaidWithUPI() {
+    get ncAmount() {
         if (!this.paymentLines || !this.paymentLines.length) {
-            return false;
+            return 0;
         }
-        return this.paymentLines.some((line) => {
-            const name = (line.payment_method_id?.name || "").toLowerCase();
-            return name.includes("upi") || name.includes("online");
-        });
+        let totalNc = 0;
+        for (const line of this.paymentLines) {
+            const name = (line.payment_method_id?.name || "").toLowerCase().trim();
+            const isNc = name.includes("no charge") || name.includes("(nc)") || name === "nc" || line.payment_method_id?.id === 6 || Boolean(line.nc_reason);
+            if (isNc) {
+                totalNc += typeof line.getAmount === "function" ? line.getAmount() : (line.amount || 0);
+            }
+        }
+        return totalNc;
     },
 
-    get showUpiQr() {
-        if (!this.order.config?.show_upi_qr_on_bill || !this.order.config?.upi_id) {
-            return false;
-        }
-        // Always show on unpaid / pro forma bill printed at table so customer can scan & pay
-        if (!this.order.finalized) {
-            return true;
-        }
-        // On finalized receipt, show if payment was made via UPI / Online
-        return this.isPaidWithUPI;
+    get ncAmountFormatted() {
+        return this.formatCurrency(this.ncAmount);
     },
 
-    get upiQrCode() {
-        const upiId = this.order.config?.upi_id;
-        if (!upiId) {
-            return false;
+    get payableAmount() {
+        const total = this.order.roundedPriceIncl !== undefined && this.order.roundedPriceIncl !== null
+            ? this.order.roundedPriceIncl
+            : (this.order.priceIncl || 0);
+        return Math.max(0, total - this.ncAmount);
+    },
+
+    get payableAmountFormatted() {
+        return this.formatCurrency(this.payableAmount);
+    },
+
+    get hasNcPayment() {
+        return this.ncAmount > 0 || Boolean(this.order.nc_reason);
+    },
+
+    get ncReason() {
+        if (this.order.nc_reason) {
+            return this.order.nc_reason;
         }
-        const amount = this.order.roundedPriceIncl || this.order.priceIncl || 0;
-        if (amount <= 0) {
-            return false;
+        if (this.paymentLines) {
+            const ncLine = this.paymentLines.find((line) => line.nc_reason);
+            if (ncLine && ncLine.nc_reason) {
+                return ncLine.nc_reason;
+            }
         }
-        const companyName = this.order.company?.name || "Restaurant";
-        const tableStr = this.tableNumberFormatted ? `Table_${this.tableNumberFormatted}` : "Order";
-        const ref = this.order.pos_reference || this.order.name || "";
-        const note = `${companyName} ${tableStr} ${ref}`.trim();
-        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(companyName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
-        try {
-            return generateQRCodeDataUrl(upiUrl, { width: 140, height: 140 });
-        } catch (err) {
-            console.error("Failed to generate UPI QR code:", err);
-            return false;
-        }
+        return "";
     },
 });

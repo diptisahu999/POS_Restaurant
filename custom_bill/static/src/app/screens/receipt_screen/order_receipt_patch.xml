@@ -20,25 +20,32 @@
             </div>
         </xpath>
 
-        <!-- Dynamic Scannable UPI QR Code before footer -->
-        <xpath expr="//div[hasclass('before-footer')]" position="before">
-            <div t-if="showUpiQr" class="custom-bill-upi-box text-center my-3 p-2 rounded">
-                <div class="upi-header fw-bolder mb-1">
-                    <i class="fa fa-qrcode me-1 text-success"/>Scan &amp; Pay via UPI
+        <!-- Dedicated Prominent Payable Amount Section -->
+        <xpath expr="//div[hasclass('receipt-total')]" position="after">
+            <div class="custom-bill-payable-section my-2 p-2 rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="payable-title fw-bold text-uppercase">Payable Amount</span>
+                    <span class="payable-amount font-monospace fw-bolder fs-4" t-out="payableAmountFormatted"/>
                 </div>
-                <div t-if="upiQrCode" class="upi-qr-wrapper my-1">
-                    <img t-att-src="upiQrCode" alt="Scan to pay with UPI" class="custom-bill-upi-qr mx-auto d-block"/>
-                </div>
-                <div class="upi-id-label text-muted small mt-1">
-                    UPI ID: <span class="fw-bold text-dark"><t t-esc="order.config.upi_id"/></span>
-                </div>
-                <div class="upi-amount-label small fw-bold">
-                    To Pay: <t t-esc="formatCurrency(order.roundedPriceIncl || order.priceIncl)"/>
-                </div>
-                <div class="upi-apps-note text-muted">
-                    Google Pay / PhonePe / Paytm / Any UPI App
+                <div t-if="hasNcPayment and ncAmount > 0" class="nc-breakdown text-muted small d-flex justify-content-between mt-1">
+                    <span>NC (No Charge) Applied:</span>
+                    <span class="font-monospace text-danger">-<t t-out="ncAmountFormatted"/></span>
                 </div>
             </div>
+        </xpath>
+
+        <!-- No Charge (NC) notice and reason on the bill -->
+        <xpath expr="//div[hasclass('before-footer')]" position="before">
+            <t t-if="hasNcPayment">
+                <div class="custom-bill-nc-notice text-start my-2 p-2 border border-danger rounded bg-light">
+                    <div class="fw-bold text-danger small">
+                        <i class="fa fa-exclamation-circle me-1"/>NO CHARGE (NC) APPLIED
+                    </div>
+                    <div t-if="ncReason" class="nc-reason-line small text-dark mt-1">
+                        <strong>Reason:</strong> <t t-esc="ncReason"/>
+                    </div>
+                </div>
+            </t>
         </xpath>
     </t>
 

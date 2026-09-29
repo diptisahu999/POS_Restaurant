@@ -8,6 +8,18 @@
             <xpath expr="//field[@name='session_id']" position="after">
                 <field name="table_id" optional="show" string="Table"/>
                 <field name="customer_count" optional="show" string="Guests"/>
+                <field name="nc_reason" optional="show" string="NC Reason"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_order_form_inherit_custom_bill" model="ir.ui.view">
+        <field name="name">pos.order.form.custom.bill</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="nc_reason" readonly="1" invisible="not nc_reason"/>
             </xpath>
         </field>
     </record>
@@ -19,7 +31,9 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='config_id']" position="after">
                 <field name="table_id" string="Table"/>
+                <field name="nc_reason" string="NC Reason"/>
                 <filter string="Table" name="group_by_table" domain="[]" context="{'group_by': 'table_id'}"/>
+                <filter string="No Charge (NC)" name="filter_nc_orders" domain="[('nc_reason', '!=', False)]"/>
             </xpath>
         </field>
     </record>
