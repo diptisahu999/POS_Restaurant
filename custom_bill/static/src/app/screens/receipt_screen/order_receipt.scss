@@ -1,0 +1,109 @@
+/* Custom Bill - Restaurant Table Badge and UPI QR Styles */
+
+.custom-bill-table-badge {
+    background: #f8f9fa;
+    border: 2px solid #212529 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px;
+    margin: 8px 0;
+
+    .table-badge-main {
+        font-size: 1.5rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        color: #111827;
+        line-height: 1.2;
+
+        .table-badge-prefix {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        .table-badge-number {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #000000;
+        }
+    }
+
+    .table-badge-meta {
+        font-size: 0.85rem;
+        color: #4b5563;
+        border-top: 1px dashed #d1d5db;
+        padding-top: 4px;
+
+        .meta-item strong {
+            color: #111827;
+        }
+    }
+}
+
+.custom-bill-upi-box {
+    background: #ffffff;
+    border: 1.5px dashed #097939;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+
+    .upi-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #097939;
+        letter-spacing: 0.5px;
+    }
+
+    .custom-bill-upi-qr {
+        width: 135px;
+        height: 135px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 4px;
+        background: #ffffff;
+    }
+
+    .upi-id-label {
+        font-size: 0.8rem;
+    }
+
+    .upi-amount-label {
+        font-size: 0.9rem;
+        color: #111827;
+    }
+
+    .upi-apps-note {
+        font-size: 9px;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+}
+
+/* Thermal printer print optimizations */
+@media print {
+    .custom-bill-table-badge {
+        border: 2px solid #000000 !important;
+        background: transparent !important;
+        color: #000000 !important;
+
+        .table-badge-main,
+        .table-badge-main .table-badge-prefix,
+        .table-badge-main .table-badge-number,
+        .table-badge-meta,
+        .table-badge-meta .meta-item strong {
+            color: #000000 !important;
+        }
+    }
+
+    .custom-bill-upi-box {
+        border: 1.5px dashed #000000 !important;
+        background: transparent !important;
+        color: #000000 !important;
+
+        .upi-header,
+        .upi-id-label,
+        .upi-amount-label,
+        .upi-apps-note {
+            color: #000000 !important;
+        }
+    }
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_order_tree_inherit_custom_bill" model="ir.ui.view">
+        <field name="name">pos.order.list.custom.bill</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='session_id']" position="after">
+                <field name="table_id" optional="show" string="Table"/>
+                <field name="customer_count" optional="show" string="Guests"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_order_search_inherit_custom_bill" model="ir.ui.view">
+        <field name="name">pos.order.search.custom.bill</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='config_id']" position="after">
+                <field name="table_id" string="Table"/>
+                <filter string="Table" name="group_by_table" domain="[]" context="{'group_by': 'table_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

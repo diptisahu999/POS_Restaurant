@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
+        <xpath expr="//ActionpadWidget" position="after">
+            <button
+                class="btn btn-lg lh-sm btn-info w-100 p-3"
+                style="margin-top: 5px;"
+                t-on-click="() => this.customSendToKitchen()"
+                t-if="!currentOrder.isEmpty()">
+                <span class="d-block text-white" style="font-size: 20px; font-weight: bold;">Send to Kitchen</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
