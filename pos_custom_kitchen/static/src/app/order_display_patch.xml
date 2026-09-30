@@ -86,7 +86,7 @@
     <t t-name="pos_custom_kitchen.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
         <!-- Add Discount to the main order page -->
         <xpath expr="//button[hasclass('more-btn')]" position="before">
-            <button t-if="!props.showRemainingButtons and pos.config.module_pos_discount and pos.config.discount_product_id and pos.cashier._role !== 'minimal'"
+            <button t-if="!props.showRemainingButtons and pos.cashier._role !== 'minimal'"
                 class="js_discount btn btn-secondary btn-lg fw-bolder text-info"
                 t-on-click="() => this.clickDiscount()">
                 <i class="fa fa-tag me-1"/>Discount
