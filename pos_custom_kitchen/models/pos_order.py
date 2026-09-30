@@ -17,6 +17,10 @@ class PosOrder(models.Model):
         for order in self:
             items_html = []
             for line in order.lines:
+                # Filter out the global discount line from the kitchen view
+                if line.product_id and order.config_id.module_pos_discount and line.product_id == order.config_id.discount_product_id:
+                    continue
+                
                 name = line.full_product_name or (line.product_id and line.product_id.display_name) or ''
                 qty = int(line.qty) if line.qty.is_integer() else line.qty
                 note_html = ""

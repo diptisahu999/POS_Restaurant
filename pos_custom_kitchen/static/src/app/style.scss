@@ -1,0 +1,14 @@
+.hide-popup-discount .js_discount {
+    display: none !important;
+}
+
+/* Ensure the control buttons container wraps properly now that we have more buttons */
+.control-buttons {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    
+    > button, > div {
+        flex: 1 1 auto;
+        min-width: fit-content;
+    }
+}
