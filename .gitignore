@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 .DS_Store
 *.log
-
+*.conf
 dograh_voice_widget/
 custom_form_page/
