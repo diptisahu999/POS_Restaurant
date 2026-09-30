@@ -10,43 +10,29 @@ class PosOrder(models.Model):
         ('done', 'Served')
     ], string='Kitchen Status', default='pending', tracking=True)
 
-    kitchen_remark = fields.Text(string='Kitchen Remark')
+    kitchen_order_lines_summary = fields.Html(string='Order Summary', compute='_compute_kitchen_order_lines_summary', sanitize=False)
 
-    kitchen_order_lines_display = fields.Html(
-        string='Kitchen Order Lines',
-        compute='_compute_kitchen_order_lines_display'
-    )
-
-    @api.depends('lines', 'lines.product_id', 'lines.qty', 'lines.customer_note', 'lines.note', 'kitchen_remark')
-    def _compute_kitchen_order_lines_display(self):
+    @api.depends('lines', 'lines.qty', 'lines.full_product_name', 'lines.product_id', 'lines.customer_note')
+    def _compute_kitchen_order_lines_summary(self):
         for order in self:
-            html_parts = []
+            items_html = []
             for line in order.lines:
-                if line.product_id.type == 'service':
-                    continue
-                qty = int(line.qty) if line.qty == int(line.qty) else line.qty
-                prod_name = line.product_id.display_name or line.full_product_name or 'Item'
-                line_html = f'<div style="font-size: 15px; font-weight: 600; color: #212529; margin-top: 4px;">{qty}x {prod_name}</div>'
-                
-                # Line level note/remark if present
-                line_note = getattr(line, 'customer_note', None) or getattr(line, 'note', None) or ''
-                if line_note and str(line_note).strip():
-                    line_html += f'<div style="color: #dc3545; font-style: italic; font-weight: 600; font-size: 13px; margin-left: 8px;">⚡ Remark: {str(line_note).strip()}</div>'
-                
-                html_parts.append(line_html)
-
-            # Order level kitchen remark
-            if order.kitchen_remark and str(order.kitchen_remark).strip():
-                html_parts.append(f'<div style="color: #dc3545; font-style: italic; font-weight: 600; font-size: 13px; margin-top: 4px;">⚡ Remark: {str(order.kitchen_remark).strip()}</div>')
-            
-            order.kitchen_order_lines_display = "".join(html_parts)
-
-    @api.model
-    def _order_fields(self, ui_order):
-        fields_dict = super()._order_fields(ui_order)
-        if ui_order.get('kitchen_remark'):
-            fields_dict['kitchen_remark'] = ui_order['kitchen_remark']
-        return fields_dict
+                name = line.full_product_name or (line.product_id and line.product_id.display_name) or ''
+                qty = int(line.qty) if line.qty.is_integer() else line.qty
+                note_html = ""
+                if line.customer_note:
+                    note_html = f"""<div style="color: #dc3545; font-size: 14px; font-weight: bold; margin-left: 20px; font-style: italic;">
+                        ↳ Remark: {line.customer_note}
+                    </div>"""
+                items_html.append(f"""
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-size: 16px; font-weight: 600; color: #111;">
+                            {qty}x {name}
+                        </span>
+                        {note_html}
+                    </div>
+                """)
+            order.kitchen_order_lines_summary = "".join(items_html)
 
     def action_start_preparing(self):
         for order in self:
@@ -72,7 +58,5 @@ class PosOrder(models.Model):
         orders = super().create(vals_list)
         for order in orders:
             # When an order comes from the POS, automatically put it in 'pending' state
-            if not order.kitchen_state:
-                order.kitchen_state = 'pending'
+            order.kitchen_state = 'pending'
         return orders
-
