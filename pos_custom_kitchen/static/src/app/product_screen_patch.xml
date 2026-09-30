@@ -1,5 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.KitchenRemarkDialog">
+        <Dialog title="'Send to Kitchen - Remark'" size="'md'">
+            <div class="p-3">
+                <label for="kitchen_remark_textarea" class="form-label fw-bold text-secondary mb-2" style="font-size: 15px;">
+                    <i class="fa fa-pencil-square-o me-1 text-primary"/> Enter Remark for Kitchen:
+                </label>
+                <textarea
+                    id="kitchen_remark_textarea"
+                    class="form-control form-control-lg"
+                    rows="3"
+                    style="font-size: 16px; border-radius: 8px;"
+                    placeholder="e.g. make spicy, less sweet, 1313, table instructions..."
+                    t-model="state.remark"
+                    autofocus="autofocus"/>
+
+                <div class="mt-3">
+                    <small class="text-muted fw-bold d-block mb-2">Quick Remarks:</small>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('Make Spicy')">
+                            🔥 Make Spicy
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('Less Spicy')">
+                            🌶️ Less Spicy
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('Less Sweet')">
+                            🍬 Less Sweet
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('No Onion / Garlic')">
+                            🧄 No Onion / Garlic
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('Extra Crispy')">
+                            ✨ Extra Crispy
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" t-on-click="() => this.addQuickRemark('Parcel / Takeaway')">
+                            📦 Parcel / Takeaway
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary px-4 py-2" t-on-click="onCancel">
+                    Cancel
+                </button>
+                <button class="btn btn-info text-white fw-bold px-4 py-2" t-on-click="() => this.onConfirm()">
+                    <i class="fa fa-paper-plane me-1"/> Send to Kitchen
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
     <t t-name="pos_custom_kitchen.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
         <xpath expr="//ActionpadWidget" position="after">
             <button
@@ -12,3 +62,4 @@
         </xpath>
     </t>
 </templates>
+
