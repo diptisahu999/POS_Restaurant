@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.GlobalDiscountPopup">
+        <Dialog title="'Apply Global Discount'">
+            <div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold" style="font-size:14px;">Discount Percentage (%)</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="fa fa-percent"/></span>
+                        <input type="number" 
+                               class="form-control text-end fs-4" 
+                               placeholder="10" 
+                               min="0" max="100" 
+                               t-att-value="state.percentage"
+                               t-on-input="onPercentageInput"
+                               style="font-weight:bold;"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label fw-bold" style="font-size:14px;">Reason for Discount</label>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <t t-foreach="state.quickReasons" t-as="quickReason" t-key="quickReason">
+                            <button type="button" 
+                                    class="btn btn-outline-secondary btn-sm"
+                                    t-on-click="() => this.setQuickReason(quickReason)">
+                                <t t-esc="quickReason"/>
+                            </button>
+                        </t>
+                    </div>
+                    <textarea class="form-control" 
+                              rows="3" 
+                              placeholder="Select a quick reason above or enter reason here..."
+                              t-att-value="state.reason"
+                              t-on-input="onReasonInput"
+                              style="font-size:14px;"/>
+                </div>
+            </div>
+            
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary me-2 px-4" t-on-click="cancel">
+                    Discard
+                </button>
+                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="!state.percentage || state.percentage &lt;= 0">
+                    Apply Discount
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

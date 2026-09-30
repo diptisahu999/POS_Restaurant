@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.OrderDisplay" t-inherit="point_of_sale.OrderDisplay" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('order-summary')]" position="replace">
+            <div t-if="props.mode !== 'receipt'" class="order-summary d-flex flex-column gap-1 p-2 border-bottom fw-bolder lh-sm">
+                <t t-set="netSubtotal" t-value="order.priceExcl"/>
+                <t t-set="netTotal" t-value="order.priceIncl"/>
+                <t t-set="netTax" t-value="netTotal - netSubtotal"/>
+                
+                <t t-set="grossSubtotal" t-value="order.getOrderlines().filter(l => !l.isDiscountLine).reduce((acc, l) => acc + (order.prices.baseLineByLineUuids?.[l.uuid]?.tax_details?.total_excluded || l.price_unit * l.qty || 0), 0)"/>
+                <t t-set="discountRatio" t-value="grossSubtotal ? (netSubtotal / grossSubtotal) : 1"/>
+                <t t-set="grossTax" t-value="discountRatio ? (netTax / discountRatio) : netTax"/>
+                <t t-set="grossTotal" t-value="grossSubtotal + grossTax"/>
+                <t t-set="discountAmount" t-value="grossTotal - netTotal"/>
+                
+                <div class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-muted">
+                    <span>Subtotal</span>
+                    <span t-esc="env.utils.formatCurrency(grossSubtotal)" class="subtotal"/>
+                </div>
+                <div t-if="grossTax &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-muted">
+                    <span>Taxes</span>
+                    <span t-esc="env.utils.formatCurrency(grossTax)" class="tax"/>
+                </div>
+                <div class="d-flex justify-content-between w-100 fs-5 mb-2">
+                    <span>Total</span>
+                    <span t-esc="env.utils.formatCurrency(grossTotal)" class="total"/>
+                </div>
+                
+                <div t-if="discountAmount &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-danger fw-bolder">
+                    <span>Discount</span>
+                    <span t-esc="env.utils.formatCurrency(-discountAmount)"/>
+                </div>
+                
+                <div class="d-flex justify-content-between w-100 fs-3 mt-2 border-top pt-2">
+                    <span>Final Amount</span>
+                    <span t-esc="env.utils.formatCurrency(netTotal)"/>
+                </div>
+            </div>
+        </xpath>
+    </t>
+    
+    <t t-name="pos_custom_kitchen.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('pos-receipt-taxes')]" position="attributes">
+            <attribute name="t-if">false</attribute>
+        </xpath>
+
+        <xpath expr="//div[hasclass('pos-receipt-amount') and hasclass('receipt-total')]" position="replace">
+            <t t-set="netSubtotal" t-value="order.priceExcl"/>
+            <t t-set="netTotal" t-value="order.priceIncl"/>
+            <t t-set="netTax" t-value="netTotal - netSubtotal"/>
+            <t t-set="grossSubtotal" t-value="order.getOrderlines().filter(l => !l.isDiscountLine).reduce((acc, l) => acc + (order.prices.baseLineByLineUuids?.[l.uuid]?.tax_details?.total_excluded || l.price_unit * l.qty || 0), 0)"/>
+            <t t-set="discountRatio" t-value="grossSubtotal ? (netSubtotal / grossSubtotal) : 1"/>
+            <t t-set="grossTax" t-value="discountRatio ? (netTax / discountRatio) : netTax"/>
+            <t t-set="grossTotal" t-value="grossSubtotal + grossTax"/>
+            <t t-set="discountAmount" t-value="grossTotal - netTotal"/>
+
+            <div class="d-flex pt-3 pb-1">
+                <span class="text-nowrap mw-100">Subtotal</span>
+                <span t-esc="env.utils.formatCurrency(grossSubtotal)" class="ms-auto font-monospace"/>
+            </div>
+            <div t-if="grossTax &gt; 0" class="d-flex pb-1">
+                <span class="text-nowrap mw-100">Tax</span>
+                <span t-esc="env.utils.formatCurrency(grossTax)" class="ms-auto font-monospace"/>
+            </div>
+            <div class="pos-receipt-amount receipt-total fw-bolder mt-2 pb-2">
+                <span class="label-total">Total</span>
+                <span t-esc="env.utils.formatCurrency(grossTotal)" class="pos-receipt-right-align font-monospace"/>
+            </div>
+            <div t-if="discountAmount &gt; 0" class="pos-receipt-amount fw-bolder text-danger pb-2">
+                <span class="label-total">Discount</span>
+                <span t-esc="env.utils.formatCurrency(-discountAmount)" class="pos-receipt-right-align font-monospace"/>
+            </div>
+        </xpath>
+        
+        <xpath expr="//li[hasclass('customer-note')]" position="replace">
+            <!-- Completely removed customer note from receipt -->
+        </xpath>
+    </t>
+
+    <t t-name="pos_custom_kitchen.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//li[hasclass('price-per-unit')][1]" position="attributes">
+            <attribute name="t-if">vals.displayPriceUnit and !vals.isReceipt</attribute>
+        </xpath>
+    </t>
+
+    <t t-name="pos_custom_kitchen.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <!-- Add Discount to the main order page -->
+        <xpath expr="//button[hasclass('more-btn')]" position="before">
+            <button t-if="!props.showRemainingButtons and pos.config.module_pos_discount and pos.config.discount_product_id and pos.cashier._role !== 'minimal'"
+                class="js_discount btn btn-secondary btn-lg fw-bolder text-info"
+                t-on-click="() => this.clickDiscount()">
+                <i class="fa fa-tag me-1"/>Discount
+            </button>
+        </xpath>
+        
+        <!-- Hide the original Discount button from the popup if pos_discount is installed -->
+        <xpath expr="//t[@t-if='props.showRemainingButtons']/div" position="attributes">
+            <attribute name="class" add="hide-popup-discount" separator=" "/>
+        </xpath>
+    </t>
+
+    <t t-name="pos_custom_kitchen.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('navbar-menu')]//button[1]" position="before">
+            <button class="btn btn-lg btn-light lh-lg fw-bolder text-primary" t-on-click="() => this.pos.closePos()">
+                <i class="fa fa-home me-1"/>
+                <span t-if="!ui.isSmall">Home</span>
+            </button>
+        </xpath>
+    </t>
+
+    <t t-name="pos_custom_kitchen.FloorScreen" t-inherit="pos_restaurant.FloorScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('info')]/div[hasclass('label')]" position="replace">
+            <div class="label fw-bolder fs-4 position-absolute top-50 start-50 translate-middle d-flex flex-column align-items-center">
+                <span t-esc="table.table_number"/>
+                <span style="font-size: 0.6em; margin-top: -2px; font-weight: 500;">
+                    <i class="fa fa-users me-1"/>
+                    <t t-esc="table.seats"/>
+                </span>
+            </div>
+        </xpath>
+    </t>
+    
+</templates>

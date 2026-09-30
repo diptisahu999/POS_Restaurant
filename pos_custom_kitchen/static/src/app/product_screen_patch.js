@@ -24,6 +24,13 @@ patch(ProductScreen.prototype, {
             return;
         }
 
+        // Filter out discount lines so they don't appear in the kitchen remarks wizard
+        lines = lines.filter(line => !line.isDiscountLine);
+
+        if (lines.length === 0) {
+            return;
+        }
+
         // Open the remarks wizard — user enters per-item notes
         const payload = await makeAwaitable(this.dialog, KitchenRemarksPopup, {
             orderlines: lines,
