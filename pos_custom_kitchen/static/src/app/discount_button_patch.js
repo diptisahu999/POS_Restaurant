@@ -7,9 +7,9 @@ import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 
 patch(ControlButtons.prototype, {
     async clickDiscount() {
-        // Open our custom popup instead of the default NumberPopup
+        // Open our custom popup
         const payload = await makeAwaitable(this.dialog, GlobalDiscountPopup, {
-            startingValue: this.pos.config.discount_pc || 10,
+            startingValue: 10,
         });
 
         if (!payload) {
@@ -17,27 +17,55 @@ patch(ControlButtons.prototype, {
         }
 
         const percent = Math.max(0, Math.min(100, payload.percentage));
-        await this.pos.applyDiscount(percent);
-
-        // Find the newly added discount line and append the reason
         const order = this.pos.getOrder();
-        if (order) {
-            // Wait for the discount line to be fully processed by the POS system
-            setTimeout(() => {
-                const discountLines = order.getOrderlines().filter(l => l.isDiscountLine);
-                for (const line of discountLines) {
-                    const newNote = payload.reason ? `Reason: ${payload.reason}` : "";
-                    if (newNote) {
-                        if (typeof line.setCustomerNote === "function") {
-                            line.setCustomerNote(newNote);
-                        } else if (typeof line.set_customer_note === "function") {
-                            line.set_customer_note(newNote);
-                        } else {
-                            line.customer_note = newNote;
-                        }
-                    }
-                }
-            }, 100);
+        if (!order) {
+            return;
         }
+
+        // Apply discount directly to each order line — no discount product needed
+        let lines = [];
+        if (typeof order.getOrderlines === "function") {
+            lines = order.getOrderlines();
+        } else if (typeof order.get_orderlines === "function") {
+            lines = order.get_orderlines();
+        } else if (order.lines) {
+            lines = [...order.lines];
+        }
+
+        // Only apply to real product lines (skip any existing discount lines)
+        const productLines = lines.filter(l => !l.isDiscountLine);
+        for (const line of productLines) {
+            if (typeof line.set_discount === "function") {
+                line.set_discount(percent);
+            } else if (typeof line.setDiscount === "function") {
+                line.setDiscount(percent);
+            } else {
+                line.discount = percent;
+            }
+
+            // Attach the reason as a customer note if provided
+            if (payload.reason) {
+                const note = `Discount ${percent}% - ${payload.reason}`;
+                if (typeof line.setCustomerNote === "function") {
+                    line.setCustomerNote(note);
+                } else if (typeof line.set_customer_note === "function") {
+                    line.set_customer_note(note);
+                } else {
+                    line.customer_note = note;
+                }
+            }
+        }
+
+        // Sync to server
+        try {
+            await this.pos.syncAllOrders();
+        } catch (e) {
+            console.warn("Discount sync failed:", e);
+        }
+
+        this.env.services.notification.add(
+            `${percent}% discount applied!`,
+            { type: "success" }
+        );
     }
 });
