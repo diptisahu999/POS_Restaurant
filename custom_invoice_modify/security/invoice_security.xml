@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Create a visible module category -->
+        <record id="module_category_custom_access" model="ir.module.category">
+            <field name="name">Custom Access</field>
+            <field name="description">Custom access rights for La Flora Restaurant</field>
+            <field name="sequence">100</field>
+            <field name="visible">True</field>
+        </record>
+
+        <!-- Create the privilege linked to our visible category -->
+        <record id="privilege_modify_paid_invoices" model="res.groups.privilege">
+            <field name="name">Modify Paid Invoices</field>
+            <field name="category_id" ref="module_category_custom_access"/>
+            <field name="sequence">10</field>
+        </record>
+
+        <!-- The group linked to the privilege -->
+        <record id="group_modify_paid_invoices" model="res.groups">
+            <field name="name">Allowed</field>
+            <field name="privilege_id" ref="privilege_modify_paid_invoices"/>
+            <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+    </data>
+</odoo>
