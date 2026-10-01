@@ -12,6 +12,7 @@
                 <field name="state"/>
                 <field name="date_order"/>
                 <field name="kitchen_order_lines_summary"/>
+                <field name="reorder_count"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_global_click mt-2">
@@ -21,9 +22,16 @@
                                         <field name="pos_reference"/>
                                     </strong>
                                 </div>
-                                <span class="badge rounded-pill text-bg-warning" style="font-size: 15px; padding: 6px 12px; font-weight: 600;">
-                                    <field name="table_id"/>
-                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge rounded-pill text-bg-warning" style="font-size: 15px; padding: 6px 12px; font-weight: 600;">
+                                        <field name="table_id"/>
+                                    </span>
+                                    <span t-if="record.reorder_count.raw_value > 0"
+                                          class="badge rounded-pill text-bg-danger"
+                                          style="font-size: 14px; padding: 6px 12px; font-weight: 700; animation: pulse 1s infinite;">
+                                        🔁 Reorder <t t-esc="record.reorder_count.raw_value"/>
+                                    </span>
+                                </div>
                             </div>
                             <div class="mt-1 text-muted mb-2" style="font-size: 13px;">
                                 <i class="fa fa-clock-o me-1"/> <field name="date_order"/>
