@@ -15,6 +15,7 @@
     'data': [
         'data/pos_category_data.xml',
         'data/product_data.xml',
+        'views/product_template_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [
