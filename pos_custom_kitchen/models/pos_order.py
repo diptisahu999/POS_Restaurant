@@ -19,7 +19,10 @@ class PosOrder(models.Model):
 
     kitchen_order_lines_summary = fields.Html(string='Order Summary', compute='_compute_kitchen_order_lines_summary', sanitize=False)
 
-    @api.depends('lines', 'lines.qty', 'lines.full_product_name', 'lines.product_id', 'lines.customer_note')
+    @api.depends(
+        'lines', 'lines.qty', 'lines.full_product_name', 'lines.product_id',
+        'lines.customer_note', 'lines.is_reorder', 'lines.reorder_qty', 'lines.reorder_note'
+    )
     def _compute_kitchen_order_lines_summary(self):
         for order in self:
             items_html = []
@@ -30,6 +33,21 @@ class PosOrder(models.Model):
                 
                 name = line.full_product_name or (line.product_id and line.product_id.display_name) or ''
                 qty = int(line.qty) if line.qty.is_integer() else line.qty
+
+                badge_html = ""
+                if line.is_reorder:
+                    if line.reorder_note:
+                        badge_text = f"🔁 {line.reorder_note}"
+                    elif line.reorder_qty > 0 and line.reorder_qty < line.qty:
+                        r_qty = int(line.reorder_qty) if line.reorder_qty.is_integer() else line.reorder_qty
+                        badge_text = f"🔁 +{r_qty} Reordered"
+                    else:
+                        badge_text = "🔁 Reordered"
+
+                    badge_html = f"""<span class="badge rounded-pill text-bg-danger ms-2" style="font-size: 12px; padding: 4px 8px; font-weight: 700; vertical-align: middle;">
+                        {badge_text}
+                    </span>"""
+
                 note_html = ""
                 if line.customer_note:
                     note_html = f"""<div style="color: #dc3545; font-size: 14px; font-weight: bold; margin-left: 20px; font-style: italic;">
@@ -40,6 +58,7 @@ class PosOrder(models.Model):
                         <span style="font-size: 16px; font-weight: 600; color: #111;">
                             {qty}x {name}
                         </span>
+                        {badge_html}
                         {note_html}
                     </div>
                 """)
@@ -76,21 +95,14 @@ class PosOrder(models.Model):
     @api.model
     def sync_from_ui(self, orders):
         """
-        Odoo 19 POS calls sync_from_ui() when 'Send to Kitchen' syncs the order.
-        We detect if new lines were added to an existing active kitchen order
-        and increment reorder_count.
+        Odoo 19 POS calls sync_from_ui() when orders are synced.
+        Detects if new lines were added, quantities modified, or items changed,
+        increments reorder_count, marks the reordered lines, and updates kitchen_state.
         """
         import logging
         _logger = logging.getLogger(__name__)
-        
-        # Log incoming orders for debugging
-        for o in orders:
-            _logger.info("SYNC_FROM_UI INCOMING ORDER %s", o.get('pos_reference'))
-            for l in o.get('lines', []):
-                _logger.info("INCOMING LINE: %s", l)
 
-        # Step 1: snapshot line counts BEFORE saving, for existing active kitchen orders
-        # Odoo 19 finds orders by 'uuid', not 'id'
+        # Step 1: Snapshot line counts and state BEFORE saving
         line_data_before = {}
         for order_data in orders:
             uuid = order_data.get('uuid')
@@ -99,25 +111,64 @@ class PosOrder(models.Model):
             existing = self._get_open_order(order_data)
             if not existing:
                 continue
-            if existing.kitchen_state in ('pending', 'preparing', 'ready_to_serve'):
-                line_data_before[existing.id] = {line.id: line.qty for line in existing.lines}
+            # Track any active order (not cancelled or paid)
+            if existing.state not in ('cancel', 'paid'):
+                line_data_before[existing.id] = {
+                    'kitchen_state': existing.kitchen_state,
+                    'lines': {line.id: line.qty for line in existing.lines}
+                }
 
-        # Step 2: call the real sync_from_ui (saves everything to DB)
+        # Step 2: Call the real sync_from_ui (saves everything to DB)
         result = super().sync_from_ui(orders)
 
-        # Step 3: compare line data AFTER — increment reorder for orders with new items or qty changes
+        # Step 3: Compare line data AFTER — detect new items or quantity changes
         orders_to_increment = []
-        for order_id, old_lines in line_data_before.items():
+        for order_id, before_info in line_data_before.items():
             order = self.browse(order_id)
+            old_lines = before_info['lines']
+            old_kitchen_state = before_info['kitchen_state']
             is_reorder = False
+
+            # If previous round of food was already ready to serve or served,
+            # clear previous reorder badges so only current round changes are highlighted.
+            if old_kitchen_state in ('ready_to_serve', 'done'):
+                order.lines.write({'is_reorder': False, 'reorder_qty': 0.0, 'reorder_note': ''})
+
             current_line_ids = []
-            
             for line in order.lines:
                 current_line_ids.append(line.id)
-                if line.id not in old_lines or line.qty != old_lines[line.id]:
+                # Ignore global discount line
+                if line.product_id and order.config_id.module_pos_discount and line.product_id == order.config_id.discount_product_id:
+                    continue
+
+                if line.id not in old_lines:
+                    # New product added to the order
                     is_reorder = True
-                    break
-            
+                    line.write({
+                        'is_reorder': True,
+                        'reorder_qty': line.qty,
+                        'reorder_note': 'New Item',
+                    })
+                elif line.qty > old_lines[line.id]:
+                    # Quantity increased (number of product changed)
+                    is_reorder = True
+                    added_qty = line.qty - old_lines[line.id]
+                    line.write({
+                        'is_reorder': True,
+                        'reorder_qty': added_qty,
+                        'reorder_note': f"+{int(added_qty) if added_qty.is_integer() else added_qty} Reordered",
+                    })
+                elif line.qty < old_lines[line.id]:
+                    # Quantity reduced
+                    is_reorder = True
+                    old_q = int(old_lines[line.id]) if old_lines[line.id].is_integer() else old_lines[line.id]
+                    new_q = int(line.qty) if line.qty.is_integer() else line.qty
+                    line.write({
+                        'is_reorder': True,
+                        'reorder_qty': line.qty,
+                        'reorder_note': f"Qty {old_q} ➔ {new_q}",
+                    })
+
             if not is_reorder:
                 for old_id in old_lines:
                     if old_id not in current_line_ids:
@@ -128,10 +179,19 @@ class PosOrder(models.Model):
                 orders_to_increment.append(order_id)
 
         if orders_to_increment:
-            self.env.cr.execute(
-                "UPDATE pos_order SET reorder_count = reorder_count + 1 WHERE id IN %s",
-                (tuple(orders_to_increment),)
-            )
-            self.browse(orders_to_increment).invalidate_recordset(['reorder_count'])
+            for ro_order in self.browse(orders_to_increment):
+                ro_order.write({
+                    'reorder_count': ro_order.reorder_count + 1,
+                    'kitchen_state': 'pending',
+                })
+            self.browse(orders_to_increment).invalidate_recordset(['reorder_count', 'kitchen_state', 'kitchen_order_lines_summary'])
 
         return result
+
+
+class PosOrderLine(models.Model):
+    _inherit = 'pos.order.line'
+
+    is_reorder = fields.Boolean(string='Is Reorder', default=False)
+    reorder_qty = fields.Float(string='Reordered Quantity', default=0.0)
+    reorder_note = fields.Char(string='Reorder Note', default='')

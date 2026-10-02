@@ -2,8 +2,23 @@
 
 import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
+import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { KitchenRemarksPopup } from "@pos_custom_kitchen/app/kitchen_remarks_popup";
+
+patch(PosStore.prototype, {
+    async submitOrder() {
+        const order = this.getOrder();
+        await super.submitOrder(...arguments);
+        if (order) {
+            try {
+                await this.syncAllOrders({ orders: [order], force: true });
+            } catch (e) {
+                console.warn("Kitchen sync failed in submitOrder:", e);
+            }
+        }
+    },
+});
 
 patch(ProductScreen.prototype, {
     async customSendToKitchen() {
@@ -56,7 +71,7 @@ patch(ProductScreen.prototype, {
 
         // Sync to server so kitchen display shows updated notes and quantities
         try {
-            await this.pos.syncAllOrders({ orders: [order] });
+            await this.pos.syncAllOrders({ orders: [order], force: true });
         } catch (e) {
             console.warn("Kitchen sync failed:", e);
         }
