@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_view_form_normalized_pos_inherit" model="ir.ui.view">
+        <field name="name">product.template.view.form.normalized.pos.inherit</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_view_form_normalized_pos"/>
+        <field name="arch" type="xml">
+            <field name="name" position="before">
+                <label for="is_one_time" string="One-Time Product"/>
+                <div class="o_row w-100">
+                    <field name="is_one_time" widget="boolean_toggle"/>
+                    <span class="text-muted small ms-2" invisible="not is_one_time">
+                        (Added to current bill only; not shown in product list)
+                    </span>
+                </div>
+            </field>
+            <xpath expr="//field[@name='barcode']" position="attributes">
+                <attribute name="invisible">is_one_time</attribute>
+            </xpath>
+            <xpath expr="//label[@for='is_storable']" position="attributes">
+                <attribute name="invisible">type != 'consu' or is_one_time</attribute>
+            </xpath>
+            <xpath expr="//div[field[@name='is_storable']]" position="attributes">
+                <attribute name="invisible">type != 'consu' or is_one_time</attribute>
+            </xpath>
+            <xpath expr="//field[@name='pos_categ_ids']" position="attributes">
+                <attribute name="invisible">is_one_time</attribute>
+            </xpath>
+            <xpath expr="//field[@name='color']" position="attributes">
+                <attribute name="invisible">is_one_time</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="point_of_sale.product_template_action_add_pos" model="ir.actions.act_window">
+        <field name="context" eval="{'default_available_in_pos': True, 'create_variant_never': 'no_variant', 'dialog_size': 'medium', 'can_be_sold': True, 'default_is_storable': False}"/>
+    </record>
+</odoo>

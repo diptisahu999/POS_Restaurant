@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="custom_pos.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//Dropdown" position="before">
+            <button class="btn btn-light btn-lg lh-lg d-flex align-items-center gap-1 text-nowrap create-product-navbar-btn"
+                    t-if="showCreateProductButton"
+                    t-on-click="() => this.pos.editProduct()"
+                    title="Create Product">
+                <i class="fa fa-plus-circle text-primary"/>
+                <span t-if="!ui.isSmall">Create Product</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
