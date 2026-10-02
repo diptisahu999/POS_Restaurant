@@ -54,9 +54,9 @@ patch(ProductScreen.prototype, {
             }
         }
 
-        // Sync to server so kitchen display shows updated notes
+        // Sync to server so kitchen display shows updated notes and quantities
         try {
-            await this.pos.syncAllOrders();
+            await this.pos.syncAllOrders({ orders: [order] });
         } catch (e) {
             console.warn("Kitchen sync failed:", e);
         }

@@ -80,9 +80,18 @@ class PosOrder(models.Model):
         We detect if new lines were added to an existing active kitchen order
         and increment reorder_count.
         """
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        # Log incoming orders for debugging
+        for o in orders:
+            _logger.info("SYNC_FROM_UI INCOMING ORDER %s", o.get('pos_reference'))
+            for l in o.get('lines', []):
+                _logger.info("INCOMING LINE: %s", l)
+
         # Step 1: snapshot line counts BEFORE saving, for existing active kitchen orders
         # Odoo 19 finds orders by 'uuid', not 'id'
-        line_counts_before = {}
+        line_data_before = {}
         for order_data in orders:
             uuid = order_data.get('uuid')
             if not uuid:
@@ -91,16 +100,31 @@ class PosOrder(models.Model):
             if not existing:
                 continue
             if existing.kitchen_state in ('pending', 'preparing', 'ready_to_serve'):
-                line_counts_before[existing.id] = len(existing.lines)
+                line_data_before[existing.id] = {line.id: line.qty for line in existing.lines}
 
         # Step 2: call the real sync_from_ui (saves everything to DB)
         result = super().sync_from_ui(orders)
 
-        # Step 3: compare line counts AFTER — increment reorder for orders with new items
+        # Step 3: compare line data AFTER — increment reorder for orders with new items or qty changes
         orders_to_increment = []
-        for order_id, count_before in line_counts_before.items():
+        for order_id, old_lines in line_data_before.items():
             order = self.browse(order_id)
-            if len(order.lines) > count_before:
+            is_reorder = False
+            current_line_ids = []
+            
+            for line in order.lines:
+                current_line_ids.append(line.id)
+                if line.id not in old_lines or line.qty != old_lines[line.id]:
+                    is_reorder = True
+                    break
+            
+            if not is_reorder:
+                for old_id in old_lines:
+                    if old_id not in current_line_ids:
+                        is_reorder = True
+                        break
+
+            if is_reorder:
                 orders_to_increment.append(order_id)
 
         if orders_to_increment:
