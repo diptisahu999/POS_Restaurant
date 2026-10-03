@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Wizard View -->
+        <record id="view_product_price_approval_wizard_form" model="ir.ui.view">
+            <field name="name">product.price.approval.wizard.form</field>
+            <field name="model">product.price.approval.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Request Price Approval">
+                    <group>
+                        <field name="product_tmpl_id" readonly="1"/>
+                        <field name="old_price" readonly="1"/>
+                        <field name="new_price"/>
+                    </group>
+                    <footer>
+                        <button name="action_request_approval" type="object" string="Submit Request" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Wizard Action (must be defined BEFORE the view that references it) -->
+        <record id="action_product_price_approval_wizard" model="ir.actions.act_window">
+            <field name="name">Request Price Approval</field>
+            <field name="res_model">product.price.approval.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context">{'default_product_tmpl_id': active_id}</field>
+        </record>
+
+        <!-- Product Form Override: inject button into the button box -->
+        <record id="view_product_template_form_inherit_price_approval" model="ir.ui.view">
+            <field name="name">product.template.form.inherit.price.approval</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet" position="before">
+                    <header>
+                        <button name="%(action_product_price_approval_wizard)d"
+                                type="action"
+                                string="Request Price Change"
+                                class="btn btn-secondary"
+                                groups="product_price_approval.group_price_approval_user"/>
+                    </header>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
