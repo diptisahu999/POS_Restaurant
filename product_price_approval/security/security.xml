@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- =====================================================
+             Price Approval Manager privilege (shows in CUSTOM ACCESS section of user form)
+             Uses base.module_category_extra = "Other Extra Rights" = "CUSTOM ACCESS" section
+             ===================================================== -->
+        <record model="res.groups.privilege" id="res_groups_privilege_price_approval">
+            <field name="name">Price Approval</field>
+            <field name="category_id" ref="base.module_category_extra"/>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- User group: can submit price change requests -->
+        <record id="group_price_approval_user" model="res.groups">
+            <field name="name">User (Can Request)</field>
+            <field name="privilege_id" ref="res_groups_privilege_price_approval"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Manager group: can approve/reject price changes -->
+        <record id="group_price_approval_manager" model="res.groups">
+            <field name="name">Manager (Can Approve)</field>
+            <field name="privilege_id" ref="res_groups_privilege_price_approval"/>
+            <field name="implied_ids" eval="[(4, ref('product_price_approval.group_price_approval_user'))]"/>
+            <field name="implied_by_ids" eval="[Command.link(ref('base.group_system'))]"/>
+        </record>
+
+        <!-- Record rules -->
+        <record id="product_price_approval_user_rule" model="ir.rule">
+            <field name="name">Product Price Approval: User can see own requests</field>
+            <field name="model_id" ref="model_product_price_approval"/>
+            <field name="groups" eval="[(4, ref('product_price_approval.group_price_approval_user'))]"/>
+            <field name="domain_force">[('requester_id', '=', user.id)]</field>
+        </record>
+
+        <record id="product_price_approval_manager_rule" model="ir.rule">
+            <field name="name">Product Price Approval: Manager can see all</field>
+            <field name="model_id" ref="model_product_price_approval"/>
+            <field name="groups" eval="[(4, ref('product_price_approval.group_price_approval_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+    </data>
+</odoo>
