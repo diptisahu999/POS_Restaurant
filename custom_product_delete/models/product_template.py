@@ -23,12 +23,18 @@ class ProductTemplate(models.Model):
         }
 
     def unlink(self):
-        if self.env.context.get('force_delete'):
+        is_allowed = (
+            self.env.context.get('force_delete')
+            or self.env.is_superuser
+            or self.env.user.has_group('custom_product_delete.group_allow_force_delete_product')
+            or self.env.user.has_group('base.group_system')
+        )
+        if is_allowed:
             variants = self.mapped('product_variant_ids')
             variant_ids = variants.ids if variants else []
             tmpl_ids = self.ids
 
-            # Clean all foreign key references (POS order lines, combos, quants, moves, etc.)
+            # Clean all foreign key references (Stock moves, Journal items, POS order lines, quants, etc.)
             force_clean_product_references(self.env, variant_ids=variant_ids, tmpl_ids=tmpl_ids)
 
             # Bypass POS session check
@@ -37,3 +43,5 @@ class ProductTemplate(models.Model):
                 variants.sudo().write({'available_in_pos': False})
 
         return super().unlink()
+
+
