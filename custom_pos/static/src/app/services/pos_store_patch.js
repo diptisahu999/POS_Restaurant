@@ -53,6 +53,9 @@ patch(PosStore.prototype, {
                         if (productVariant) {
                             productVariant.is_one_time = true;
                             productVariant.available_in_pos = false;
+                            if (productTmpl?.pos_categ_ids?.length && !productVariant.pos_categ_ids?.length) {
+                                productVariant.pos_categ_ids = productTmpl.pos_categ_ids;
+                            }
                         }
 
                         let order = this.getOrder();
@@ -99,6 +102,8 @@ patch(PosStore.prototype, {
             additionalContext: {
                 taxes_readonly: orderContainsProduct,
                 default_is_storable: false,
+                default_is_one_time: true,
+                ...(this.selectedCategory?.id ? { default_pos_categ_ids: [this.selectedCategory.id] } : {}),
             },
         });
     },

@@ -1,0 +1,6 @@
+/* Hide Create Product button when viewing the floor screen (Tables view) */
+body:has(.floor-screen) .create-product-navbar-btn,
+.pos:has(.floor-screen) .create-product-navbar-btn,
+.pos:has(.table-button.active) .create-product-navbar-btn {
+    display: none !important;
+}

@@ -3,7 +3,7 @@
     <t t-name="custom_pos.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
         <xpath expr="//Dropdown" position="before">
             <button class="btn btn-light btn-lg lh-lg d-flex align-items-center gap-1 text-nowrap create-product-navbar-btn"
-                    t-if="showCreateProductButton"
+                    t-if="showCreateProductButton and pos.router.state.current != 'FloorScreen'"
                     t-on-click="() => this.pos.editProduct()"
                     title="Create Product">
                 <i class="fa fa-plus-circle text-primary"/>
