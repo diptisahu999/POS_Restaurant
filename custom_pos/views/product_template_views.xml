@@ -24,7 +24,8 @@
                 <attribute name="invisible">type != 'consu' or is_one_time</attribute>
             </xpath>
             <xpath expr="//field[@name='pos_categ_ids']" position="attributes">
-                <attribute name="invisible">is_one_time</attribute>
+                <attribute name="invisible">False</attribute>
+                <attribute name="placeholder">Select POS Category for Kitchen</attribute>
             </xpath>
             <xpath expr="//field[@name='color']" position="attributes">
                 <attribute name="invisible">is_one_time</attribute>

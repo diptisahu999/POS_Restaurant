@@ -3,8 +3,8 @@ import time
 import xmlrpc.client
 
 URL = "http://localhost:9981"
-DB = "POS_restaurant"
-USERNAME = "admin"
+DB = "restaurant"
+USERNAME = "admin01@gmail.com"
 PASSWORD = "admin"
 
 MENU_ITEMS = [
