@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action for Product Template (appears in Action cog menu) -->
+    <record id="action_server_force_delete_product_template" model="ir.actions.server">
+        <field name="name">Force Delete</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="group_ids" eval="[(4, ref('custom_product_delete.group_allow_force_delete_product'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_force_delete()
+        </field>
+    </record>
+
+    <!-- Server Action for Product Product (variants) -->
+    <record id="action_server_force_delete_product_product" model="ir.actions.server">
+        <field name="name">Force Delete</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="binding_model_id" ref="product.model_product_product"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="group_ids" eval="[(4, ref('custom_product_delete.group_allow_force_delete_product'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_force_delete()
+        </field>
+    </record>
+</odoo>

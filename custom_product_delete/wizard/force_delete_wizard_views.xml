@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_custom_product_force_delete_wizard_form" model="ir.ui.view">
+        <field name="name">custom.product.force.delete.wizard.form</field>
+        <field name="model">custom.product.force.delete.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Force Delete Product">
+                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                    <i class="fa fa-exclamation-triangle fa-2x me-3 text-warning"/>
+                    <div>
+                        <strong>Warning:</strong> You are about to permanently delete this product while POS sessions may be open.
+                    </div>
+                </div>
+                <p class="fs-6 mb-2">
+                    Are you sure you want to force delete:
+                </p>
+                <div class="p-2 mb-3 bg-light border rounded fw-bold text-danger">
+                    <field name="product_names" readonly="1"/>
+                </div>
+                <footer>
+                    <button string="Force Delete" name="action_confirm_force_delete" type="object" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

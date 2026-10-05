@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_force_delete_access" model="ir.ui.view">
+        <field name="name">res.users.form.force.delete.access</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <separator string="Product Management Permissions"/>
+                <group name="product_management_access">
+                    <field name="has_force_delete_access" string="Allow Force Delete Products" widget="boolean_toggle"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
