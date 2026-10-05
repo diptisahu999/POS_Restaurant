@@ -12,7 +12,7 @@
 
         <!-- Price and Quantity Stepper (+ / -) Section -->
         <xpath expr="//div[hasclass('product-content')]" position="inside">
-            <div class="product-card-footer d-flex justify-content-between align-items-center w-100 mt-auto pt-2"
+            <div class="product-card-footer d-flex justify-content-between align-items-center w-100 pt-1"
                 t-on-click.stop.prevent=""
                 t-on-mousedown.stop=""
                 t-on-touchstart.stop=""
