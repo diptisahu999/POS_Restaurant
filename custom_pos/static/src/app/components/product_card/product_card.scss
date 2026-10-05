@@ -20,7 +20,8 @@ body:has(.floor-screen) .create-product-navbar-btn,
     border: 1px solid #e2e8f0 !important;
     background-color: #ffffff !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    min-height: 12.5rem;
+    min-height: auto !important;
+    height: auto !important;
     display: flex !important;
     flex-direction: column !important;
 
@@ -55,8 +56,11 @@ body:has(.floor-screen) .create-product-navbar-btn,
     .product-content {
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
-        flex-grow: 1;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        flex-grow: 0 !important;
+        height: auto !important;
+        min-height: auto !important;
         padding: 8px 10px 10px 10px !important;
         width: 100%;
 
@@ -65,7 +69,7 @@ body:has(.floor-screen) .create-product-navbar-btn,
             font-weight: 700;
             color: #1e293b;
             line-height: 1.25;
-            margin-bottom: 6px;
+            margin-bottom: 2px !important;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -75,8 +79,8 @@ body:has(.floor-screen) .create-product-navbar-btn,
 
     .product-card-footer {
         border-top: 1px solid #f1f5f9;
-        margin-top: auto;
-        padding-top: 6px;
+        margin-top: 6px !important;
+        padding-top: 6px !important;
 
         .product-card-price-block {
             line-height: 1.1;
