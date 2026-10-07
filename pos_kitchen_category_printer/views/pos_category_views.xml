@@ -8,7 +8,11 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='parent_id']" position="after">
                 <field name="printer_name" placeholder="e.g. TVS RP3200 Kitchen 1 / Bar / Tandoor"/>
-                <field name="printer_url" placeholder="e.g. http://192.168.1.201:8069 or http://192.168.1.201:5000/print"/>
+                <label for="printer_url" string="Printer IP / URL"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="printer_url" placeholder="e.g. 192.168.1.232 or 192.168.1.232:9100"/>
+                    <button name="action_test_printer" type="object" string="🖨️ Test Print" class="btn btn-sm btn-secondary" invisible="not printer_url"/>
+                </div>
             </xpath>
         </field>
     </record>

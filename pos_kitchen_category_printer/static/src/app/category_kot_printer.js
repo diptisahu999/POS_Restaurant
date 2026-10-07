@@ -49,22 +49,24 @@ patch(ProductScreen.prototype, {
         const roundTitle = printData.round_title || "ORDER";
         const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // 3. Print separate KOT tickets for each category to its configured dynamic Printer URL / Station
+        // 3. Process category print jobs without opening any browser popup dialog
         for (const [categoryName, catData] of Object.entries(printData.category_map)) {
             const items = catData.items || [];
             if (items.length === 0) {
                 continue;
             }
 
+            if (catData.direct_printed) {
+                console.log(`[KOT Print] Successfully printed to ${categoryName} station (${catData.printer_ip}:${catData.printer_port || 9100})`);
+                continue;
+            }
+
             const printerUrl = (catData.printer_url || "").trim();
             const printerName = catData.printer_name || categoryName;
 
-            // Route to Dynamic Printer URL if configured
-            if (printerUrl) {
+            // Route to Dynamic HTTP Printer / Proxy if configured
+            if (printerUrl && (printerUrl.startsWith("http://") || printerUrl.startsWith("https://"))) {
                 this._sendToDynamicPrinterUrl(printerUrl, categoryName, printerName, items, roundTitle, tableName, orderName, now);
-            } else {
-                // Fallback to browser slip print
-                this._printCategoryKOT(categoryName, printerName, items, roundTitle, tableName, orderName, now);
             }
         }
     },
@@ -82,11 +84,9 @@ patch(ProductScreen.prototype, {
                 qty: it.qty,
                 note: it.note || '',
             })),
-            html: this._getKOTReceiptHtml(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr),
         };
 
         try {
-            // Direct POST call to dynamic category printer URL / proxy
             await fetch(printerUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -95,91 +95,7 @@ patch(ProductScreen.prototype, {
             });
             console.log(`[KOT Print] Successfully sent print job to ${categoryName} printer at ${printerUrl}`);
         } catch (err) {
-            console.warn(`[KOT Print] Failed to send direct network request to ${printerUrl}. Falling back to browser slip:`, err);
-            // Fallback to browser slip print if network request is blocked/unreachable
-            this._printCategoryKOT(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr);
+            console.warn(`[KOT Print] Network request to ${printerUrl} failed:`, err);
         }
-    },
-
-    _getKOTReceiptHtml(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr) {
-        let itemsHtml = "";
-        for (const item of items) {
-            let noteHtml = "";
-            if (item.note) {
-                noteHtml = `<div style="font-size: 13px; font-weight: bold; font-style: italic; margin-left: 15px; color: #333;">↳ Note: ${item.note}</div>`;
-            }
-
-            itemsHtml += `
-                <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px dashed #ddd; padding-bottom: 4px;">
-                    <span>${item.qty}x ${item.name}</span>
-                </div>
-                ${noteHtml}
-            `;
-        }
-
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>KOT - ${categoryName}</title>
-                <style>
-                    body { font-family: monospace, sans-serif; width: 280px; margin: 0 auto; padding: 10px; color: #000; }
-                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
-                    .round-badge { background: #000; color: #fff; text-align: center; font-size: 16px; font-weight: 900; padding: 4px; margin: 6px 0; letter-spacing: 1px; }
-                    .cat-title { background: #eee; border: 2px solid #000; color: #000; text-align: center; font-size: 17px; font-weight: 900; padding: 6px; margin: 6px 0; }
-                    .meta { font-size: 14px; font-weight: bold; margin-bottom: 8px; }
-                    .footer { text-align: center; border-top: 2px solid #000; margin-top: 12px; padding-top: 6px; font-size: 12px; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h2 style="margin: 0; font-size: 20px;">KITCHEN ORDER TICKET</h2>
-                    ${printerName && printerName !== categoryName ? `<div style="font-size: 13px; font-weight: bold;">[ ${printerName} ]</div>` : ''}
-                </div>
-                <div class="round-badge">
-                    *** [ ${roundTitle} ] ***
-                </div>
-                <div class="meta">
-                    <div><strong>Table:</strong> ${tableName}</div>
-                    <div><strong>Order:</strong> ${orderName}</div>
-                    <div><strong>Time:</strong> ${timeStr}</div>
-                </div>
-                <div class="cat-title">
-                    STATION: ${categoryName.toUpperCase()}
-                </div>
-                <div style="margin-top: 10px;">
-                    ${itemsHtml}
-                </div>
-                <div class="footer">
-                    --- STATION PRINT: ${categoryName.toUpperCase()} ---
-                </div>
-            </body>
-            </html>
-        `;
-    },
-
-    _printCategoryKOT(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr) {
-        const receiptHtml = this._getKOTReceiptHtml(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr);
-
-        // Create invisible iframe to trigger print for this category printer
-        const iframe = document.createElement("iframe");
-        iframe.style.position = "absolute";
-        iframe.style.width = "0px";
-        iframe.style.height = "0px";
-        iframe.style.border = "none";
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(receiptHtml);
-        doc.close();
-
-        iframe.contentWindow.focus();
-        setTimeout(() => {
-            iframe.contentWindow.print();
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 1000);
-        }, 500);
     },
 });
