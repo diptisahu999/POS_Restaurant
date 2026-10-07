@@ -22,7 +22,20 @@ patch(ControlButtons.prototype, {
             return;
         }
 
-        // Apply discount directly to each order line — no discount product needed
+        // Apply discount using the Global Discount Product to avoid reducing tax
+        const discountConfig = this.pos.config.discount_product_id;
+        const discountProductId = discountConfig ? (discountConfig.id || discountConfig[0] || discountConfig) : false;
+        if (!discountProductId) {
+            this.env.services.notification.add("Discount product is not configured in POS settings.", { type: "danger" });
+            return;
+        }
+
+        const discountProduct = this.pos.models["product.product"].get(discountProductId);
+        if (!discountProduct) {
+            this.env.services.notification.add("Discount product not found in local database.", { type: "danger" });
+            return;
+        }
+        
         let lines = [];
         if (typeof order.getOrderlines === "function") {
             lines = order.getOrderlines();
@@ -32,26 +45,56 @@ patch(ControlButtons.prototype, {
             lines = [...order.lines];
         }
 
-        // Only apply to real product lines (skip any existing discount lines)
-        const productLines = lines.filter(l => !l.isDiscountLine);
-        for (const line of productLines) {
-            if (typeof line.set_discount === "function") {
-                line.set_discount(percent);
-            } else if (typeof line.setDiscount === "function") {
-                line.setDiscount(percent);
-            } else {
-                line.discount = percent;
+        // First, reset all line discounts to 0 to clear the previous method
+        for (const line of lines) {
+            if (line.discount > 0) {
+                if (typeof line.set_discount === "function") line.set_discount(0);
+                else if (typeof line.setDiscount === "function") line.setDiscount(0);
+                else line.discount = 0;
             }
+        }
 
-            // Attach the reason as a customer note if provided
-            if (payload.reason) {
-                const note = `Discount ${percent}% - ${payload.reason}`;
-                if (typeof line.setCustomerNote === "function") {
-                    line.setCustomerNote(note);
-                } else if (typeof line.set_customer_note === "function") {
-                    line.set_customer_note(note);
-                } else {
-                    line.customer_note = note;
+        // Remove any existing Global Discount lines
+        const existingDiscounts = lines.filter(l => 
+            (l.product && l.product.id === discountProductId) || 
+            (l.product_id && l.product_id.id === discountProductId) ||
+            l.isDiscountLine
+        );
+        for (const line of existingDiscounts) {
+            if (typeof order.removeOrderline === "function") {
+                order.removeOrderline(line);
+            } else if (typeof order.remove_orderline === "function") {
+                order.remove_orderline(line);
+            }
+        }
+
+        // Apply new global discount
+        if (percent > 0) {
+            const subtotal = typeof order.get_total_without_tax === "function" ? order.get_total_without_tax() : (order.priceExcl || 0);
+            const discountAmt = - (subtotal * percent / 100.0);
+            
+            await this.pos.addLineToOrder({
+                product_id: discountProduct,
+                product_tmpl_id: discountProduct.product_tmpl_id,
+                price_unit: discountAmt,
+                qty: 1,
+                price_manually_set: true,
+            }, order, { force: true }, false);
+
+            // Re-fetch lines to find the newly added discount line
+            const newLines = typeof order.getOrderlines === "function" ? order.getOrderlines() : (typeof order.get_orderlines === "function" ? order.get_orderlines() : [...order.lines]);
+            const newDiscountLine = newLines.find(l => l.product && l.product.id === discountProductId);
+            
+            if (newDiscountLine) {
+                // Ensure the line is marked correctly for the UI
+                newDiscountLine.isDiscountLine = true;
+                
+                // Set note
+                if (payload.reason) {
+                    const note = `Discount ${percent}% - ${payload.reason}`;
+                    if (typeof newDiscountLine.setCustomerNote === "function") newDiscountLine.setCustomerNote(note);
+                    else if (typeof newDiscountLine.set_customer_note === "function") newDiscountLine.set_customer_note(note);
+                    else newDiscountLine.customer_note = note;
                 }
             }
         }
@@ -64,7 +107,7 @@ patch(ControlButtons.prototype, {
         }
 
         this.env.services.notification.add(
-            `${percent}% discount applied!`,
+            percent > 0 ? `${percent}% discount applied!` : "Discount removed!",
             { type: "success" }
         );
     }
