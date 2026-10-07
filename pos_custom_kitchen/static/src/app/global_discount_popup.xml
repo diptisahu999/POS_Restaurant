@@ -41,7 +41,7 @@
                 <button class="btn btn-secondary me-2 px-4" t-on-click="cancel">
                     Discard
                 </button>
-                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="!state.percentage || state.percentage &lt;= 0">
+                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="state.percentage === '' || state.percentage &lt; 0">
                     Apply Discount
                 </button>
             </t>

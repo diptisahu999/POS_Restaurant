@@ -230,13 +230,7 @@ class PosOrder(models.Model):
         for order in self:
             order.kitchen_state = 'preparing'
 
-    def action_pos_order_paid(self):
-        for order in self:
-            if order.kitchen_state != 'done' and any(line.product_id.type != 'service' for line in order.lines):
-                # pyrefly: ignore [missing-import]
-                from odoo.exceptions import UserError
-                raise UserError("You cannot accept payment! The food must be served to the customer first.")
-        return super().action_pos_order_paid()
+
 
     def action_ready_to_serve(self):
         for order in self:
