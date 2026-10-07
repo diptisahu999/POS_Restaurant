@@ -45,6 +45,23 @@ class PosOrder(models.Model):
         ('done', 'Served')
     ], string='Kitchen Status', default='pending', tracking=True)
 
+    order_status = fields.Selection([
+        ('pending', 'Waiting'),
+        ('preparing', 'Preparing'),
+        ('ready_to_serve', 'Ready to Serve'),
+        ('done', 'Served')
+    ], string='Order Status', compute='_compute_order_status', inverse='_inverse_order_status', store=False)
+
+    def _compute_order_status(self):
+        for rec in self:
+            rec.order_status = rec.kitchen_state or 'pending'
+
+    def _inverse_order_status(self):
+        for rec in self:
+            if rec.order_status:
+                rec.kitchen_state = rec.order_status
+
+
     reorder_count = fields.Integer(
         string='Reorder Count',
         compute='_compute_reorder_count',
