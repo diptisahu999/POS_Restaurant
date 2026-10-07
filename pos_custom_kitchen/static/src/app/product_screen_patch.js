@@ -2,23 +2,9 @@
 
 import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
-import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { KitchenRemarksPopup } from "@pos_custom_kitchen/app/kitchen_remarks_popup";
 
-patch(PosStore.prototype, {
-    async submitOrder() {
-        const order = this.getOrder();
-        await super.submitOrder(...arguments);
-        if (order) {
-            try {
-                await this.syncAllOrders({ orders: [order], force: true });
-            } catch (e) {
-                console.warn("Kitchen sync failed in submitOrder:", e);
-            }
-        }
-    },
-});
 
 patch(ProductScreen.prototype, {
     async customSendToKitchen() {
@@ -76,9 +62,35 @@ patch(ProductScreen.prototype, {
             console.warn("Kitchen sync failed:", e);
         }
 
+        // Show immediate notification that printing has started
         this.env.services.notification.add(
-            "Order sent to kitchen!",
-            { type: "success" }
+            "Sending order to Kitchen Printers...",
+            { type: "info" }
         );
+
+        // Trigger direct network kitchen printer
+        try {
+            const printResult = await this.pos.data.call("pos.order", "action_print_kitchen_order", [order.uuid]);
+            if (printResult && printResult.success) {
+                const printerNames = (printResult.printers && printResult.printers.length)
+                    ? printResult.printers.join(", ")
+                    : "Kitchen Printer";
+                this.env.services.notification.add(
+                    `Printing Order: Sent to ${printerNames}!`,
+                    { type: "success" }
+                );
+            } else if (printResult && !printResult.success) {
+                this.env.services.notification.add(
+                    `Printer Warning: ${printResult.message || 'No ticket printed'}`,
+                    { type: "warning" }
+                );
+            }
+        } catch (e) {
+            console.error("Network kitchen print call failed:", e);
+            this.env.services.notification.add(
+                "Printer Error: " + (e.message || "Failed to reach printer"),
+                { type: "danger" }
+            );
+        }
     },
 });

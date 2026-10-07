@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Kitchen Printer Ticket Log: Kanban View grouped by Kitchen Printer -->
+    <record id="view_pos_kitchen_printer_log_kanban" model="ir.ui.view">
+        <field name="name">pos.kitchen.printer.log.kanban</field>
+        <field name="model">pos.kitchen.printer.log</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="printer_id" create="false" edit="false">
+                <field name="name"/>
+                <field name="printer_id"/>
+                <field name="order_number"/>
+                <field name="table_number"/>
+                <field name="floor_name"/>
+                <field name="order_ref"/>
+                <field name="table_name"/>
+                <field name="status"/>
+                <field name="error_message"/>
+                <field name="create_date"/>
+                <field name="item_count"/>
+                <field name="ticket_html"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click p-2 mb-2 d-flex flex-column h-100" style="border-radius: 8px;">
+                            <!-- Header: Order Number, Table & Status -->
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div>
+                                    <strong class="fs-5 text-primary">
+                                        <t t-if="record.order_number.raw_value">Order #<field name="order_number"/></t>
+                                        <t t-else=""><field name="order_ref"/></t>
+                                    </strong>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="badge rounded-pill text-bg-warning fs-6 px-2 py-1">
+                                        <i class="fa fa-cutlery me-1"/>
+                                        <t t-if="record.table_number.raw_value">
+                                            Table <field name="table_number"/> <t t-if="record.floor_name.raw_value">(<field name="floor_name"/>)</t>
+                                        </t>
+                                        <t t-else="">
+                                            <field name="table_name"/>
+                                        </t>
+                                    </span>
+                                    <span t-if="record.status.raw_value == 'printed'" class="badge rounded-pill text-bg-success px-2 py-1">
+                                        <i class="fa fa-check-circle me-1"/> Printed
+                                    </span>
+                                    <span t-if="record.status.raw_value == 'failed'" class="badge rounded-pill text-bg-danger px-2 py-1">
+                                        <i class="fa fa-exclamation-triangle me-1"/> Failed
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Order Reference and Time -->
+                            <div class="d-flex justify-content-between align-items-center mb-2 text-muted small">
+                                <span>Ref: <field name="order_ref"/></span>
+                                <span>
+                                    <i class="fa fa-clock-o me-1"/> <field name="create_date"/>
+                                </span>
+                            </div>
+
+                            <!-- Error Message Banner (if failed) -->
+                            <div t-if="record.error_message.raw_value" class="alert alert-danger p-2 mb-2 small" role="alert">
+                                <strong>Error:</strong> <field name="error_message"/>
+                            </div>
+
+                            <!-- Ticket Slip Preview (Exact thermal ticket content) -->
+                            <div class="border rounded p-2 bg-light flex-grow-1 overflow-auto" style="max-height: 380px;">
+                                <field name="ticket_html" widget="html"/>
+                            </div>
+
+                            <!-- Footer: Reprint Action Button -->
+                            <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">
+                                    <strong><field name="item_count"/></strong> items
+                                </span>
+                                <button name="action_reprint" type="object" class="btn btn-outline-primary btn-sm px-3" icon="fa-print">
+                                    Reprint
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Kitchen Printer Ticket Log: List / Tree View -->
+    <record id="view_pos_kitchen_printer_log_tree" model="ir.ui.view">
+        <field name="name">pos.kitchen.printer.log.list</field>
+        <field name="model">pos.kitchen.printer.log</field>
+        <field name="arch" type="xml">
+            <list string="Kitchen Printer Ticket Logs" default_order="create_date desc" create="false" edit="false">
+                <field name="create_date" string="Date &amp; Time"/>
+                <field name="printer_id" string="Kitchen Printer"/>
+                <field name="order_number" string="Order #"/>
+                <field name="order_ref" string="Reference"/>
+                <field name="table_number" string="Table #" optional="show"/>
+                <field name="floor_name" string="Floor" optional="show"/>
+                <field name="table_name" string="Table" optional="hide"/>
+                <field name="item_count" string="Items"/>
+                <field name="status" widget="badge" 
+                       decoration-success="status == 'printed'" 
+                       decoration-danger="status == 'failed'"/>
+                <field name="error_message" string="Error Details" optional="show"/>
+                <button name="action_reprint" type="object" string="Reprint" class="btn btn-sm btn-outline-primary" icon="fa-print"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kitchen Printer Ticket Log: Form View -->
+    <record id="view_pos_kitchen_printer_log_form" model="ir.ui.view">
+        <field name="name">pos.kitchen.printer.log.form</field>
+        <field name="model">pos.kitchen.printer.log</field>
+        <field name="arch" type="xml">
+            <form string="Kitchen Ticket Log" create="false">
+                <header>
+                    <button name="action_reprint" type="object" string="Reprint Ticket to Printer" class="btn-primary" icon="fa-print"/>
+                    <field name="status" widget="statusbar" statusbar_visible="printed,failed"/>
+                </header>
+                <sheet>
+                    <div invisible="status != 'failed'" class="alert alert-danger" role="alert">
+                        <strong>Printing Failed:</strong> <field name="error_message"/>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" string="Ticket"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Printer &amp; Table">
+                            <field name="printer_id" readonly="1"/>
+                            <field name="table_number" string="Table Number" readonly="1"/>
+                            <field name="floor_name" string="Floor" readonly="1"/>
+                            <field name="table_name" readonly="1"/>
+                            <field name="item_count" readonly="1"/>
+                        </group>
+                        <group string="Order Info">
+                            <field name="order_number" string="Order Number" readonly="1"/>
+                            <field name="order_ref" readonly="1"/>
+                            <field name="order_id" readonly="1"/>
+                            <field name="create_date" string="Printed At" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ticket Slip Preview">
+                            <div class="p-3 bg-light border rounded">
+                                <field name="ticket_html" widget="html" readonly="1"/>
+                            </div>
+                        </page>
+                        <page string="Raw Thermal ESC/POS Text">
+                            <field name="ticket_text" readonly="1" widget="text"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Kitchen Printer Ticket Log: Search View -->
+    <record id="view_pos_kitchen_printer_log_search" model="ir.ui.view">
+        <field name="name">pos.kitchen.printer.log.search</field>
+        <field name="model">pos.kitchen.printer.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Kitchen Tickets">
+                <field name="name"/>
+                <field name="order_number" string="Order Number"/>
+                <field name="table_number" string="Table Number"/>
+                <field name="floor_name" string="Floor"/>
+                <field name="order_ref"/>
+                <field name="table_name"/>
+                <field name="printer_id"/>
+                <filter string="Printed" name="printed" domain="[('status', '=', 'printed')]"/>
+                <filter string="Failed" name="failed" domain="[('status', '=', 'failed')]"/>
+                <separator/>
+                <group>
+                    <filter name="group_by_printer" string="Kitchen Printer" domain="[]" context="{'group_by': 'printer_id'}"/>
+                    <filter name="group_by_table" string="Table" domain="[]" context="{'group_by': 'table_name'}"/>
+                    <filter name="group_by_status" string="Status" domain="[]" context="{'group_by': 'status'}"/>
+                    <filter name="group_by_date" string="Date" domain="[]" context="{'group_by': 'create_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Kitchen Printer Logs (Kanban default) -->
+    <record id="action_pos_kitchen_printer_logs" model="ir.actions.act_window">
+        <field name="name">Kitchen Printer Dashboard</field>
+        <field name="res_model">pos.kitchen.printer.log</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_group_by_printer': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No tickets printed yet!
+            </p>
+            <p>
+                When orders are sent to the kitchen from POS, tickets for each kitchen printer will automatically appear here grouped by printer with a live slip preview.
+            </p>
+        </field>
+    </record>
+
+    <!-- Action for Kitchen Printers Configuration -->
+    <record id="action_pos_kitchen_printers_setup" model="ir.actions.act_window">
+        <field name="name">Kitchen Printers Dashboard</field>
+        <field name="res_model">pos.printer</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_id" ref="view_pos_printer_kanban_dashboard"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configure your Kitchen Thermal Network Printers here.
+            </p>
+        </field>
+    </record>
+
+    <!-- Top-Level Sidebar Menu: Kitchen Printer -->
+    <menuitem id="menu_custom_kitchen_printer_root"
+              name="Kitchen Printer"
+              sequence="22"
+              web_icon="point_of_sale,static/description/icon.png"/>
+
+    <menuitem id="menu_kitchen_printer_logs"
+              name="Printer Tickets &amp; Logs"
+              parent="menu_custom_kitchen_printer_root"
+              action="action_pos_kitchen_printer_logs"
+              sequence="1"/>
+
+    <menuitem id="menu_kitchen_printers_setup"
+              name="Printers Configuration"
+              parent="menu_custom_kitchen_printer_root"
+              action="action_pos_kitchen_printers_setup"
+              sequence="2"/>
+</odoo>

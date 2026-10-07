@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_printer_form_inherit_network_tvs" model="ir.ui.view">
+        <field name="name">pos.printer.form.inherit.network.tvs</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <div class="oe_button_box" name="button_box">
+                    <button name="action_view_printer_orders" type="object" class="oe_stat_button" icon="fa-cutlery">
+                        <field name="order_count" widget="statinfo" string="Kitchen Orders"/>
+                    </button>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='proxy_ip']" position="after">
+                <field name="network_printer_ip" 
+                       placeholder="e.g. 192.168.1.101" 
+                       invisible="printer_type != 'network_tcp'"
+                       required="printer_type == 'network_tcp'"/>
+                <field name="network_printer_port" 
+                       invisible="printer_type != 'network_tcp'"/>
+                <div invisible="printer_type != 'network_tcp'" class="mt-2 mb-2">
+                    <button name="action_test_network_print" 
+                            type="object" 
+                            string="Test Print on Printer" 
+                            class="btn btn-outline-primary btn-sm"
+                            icon="fa-print"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Dedicated Kanban view for Kitchen Printers Dashboard -->
+    <record id="view_pos_printer_kanban_dashboard" model="ir.ui.view">
+        <field name="name">pos.printer.kanban.dashboard</field>
+        <field name="model">pos.printer</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard" create="true">
+                <field name="name"/>
+                <field name="printer_type"/>
+                <field name="network_printer_ip"/>
+                <field name="network_printer_port"/>
+                <field name="order_count"/>
+                <field name="product_categories_ids"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click p-3 d-flex flex-column h-100 border rounded shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4 class="m-0 text-primary font-weight-bold">
+                                    <field name="name"/>
+                                </h4>
+                                <span class="badge rounded-pill text-bg-success" invisible="printer_type != 'network_tcp'">
+                                    <i class="fa fa-wifi me-1"/> Network TCP
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-2" invisible="printer_type != 'network_tcp'">
+                                <strong>IP Address:</strong> <field name="network_printer_ip"/>:<field name="network_printer_port"/>
+                            </div>
+                            <div class="mb-2 small flex-grow-1">
+                                <strong>Assigned Categories:</strong>
+                                <field name="product_categories_ids" widget="many2many_tags"/>
+                            </div>
+                            <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                                <button name="action_view_printer_orders" type="object" class="btn btn-outline-primary btn-sm">
+                                    <i class="fa fa-cutlery me-1"/> <field name="order_count"/> Orders
+                                </button>
+                                <button name="action_test_network_print" type="object" class="btn btn-sm btn-outline-secondary" invisible="printer_type != 'network_tcp'">
+                                    <i class="fa fa-print me-1"/> Test Print
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+</odoo>
