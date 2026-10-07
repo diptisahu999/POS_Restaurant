@@ -131,73 +131,83 @@ class PosOrder(models.Model):
     @api.model
     def _send_escpos_kot_to_printer(self, ip, port, category_name, printer_name, items, round_title, table_name, order_name, time_str):
         """
-        Sends raw ESC/POS commands directly to TVS RP 3200 LITE / Network thermal printer via TCP socket.
+        Sends a KOT ticket to any network printer via RAW TCP (port 9100 JetDirect).
+        Compatible with:
+          - Brother laser printers (DCP-L2540DW, etc.) - plain ASCII text via JetDirect
+          - Thermal receipt printers (TVS RP3200, Epson TM, etc.) - plain text mode
+        Note: Pure plain ASCII is used (no ESC/POS binary) so Brother laser printers
+        print clean, readable KOT tickets on A4 paper without garbled characters.
         """
         import socket
-        import time
+        import time as time_mod
         import logging
         _log = logging.getLogger(__name__)
 
-        ESC_INIT = b'\x1b\x40'              # Initialize printer
-        ESC_ALIGN_CENTER = b'\x1b\x61\x01'  # Center align
-        ESC_ALIGN_LEFT = b'\x1b\x61\x00'    # Left align
-        TXT_BOLD_ON = b'\x1b\x45\x01'       # Bold on
-        TXT_BOLD_OFF = b'\x1b\x45\x00'      # Bold off
-        TXT_DOUBLE_SIZE = b'\x1b\x21\x30'   # Double width and height
-        TXT_NORMAL = b'\x1b\x21\x00'        # Normal
-        FEED_AND_CUT = b'\r\n\r\n\r\n\r\n\x1d\x56\x00' # Feed lines & Full paper cut
+        # ── Plain text KOT ticket (works on ALL network printers) ────────────
+        PAGE_WIDTH = 48  # Characters wide (fits A4 and 80mm thermal)
+        DIVIDER    = "=" * PAGE_WIDTH
+        THIN_LINE  = "-" * PAGE_WIDTH
 
-        lines = [
-            "================================\r\n",
-            "      KITCHEN ORDER TICKET      \r\n",
-        ]
+        def center(text, width=PAGE_WIDTH):
+            return text.center(width)
+
+        lines = []
+        lines.append("\r\n")  # Top margin
+        lines.append(DIVIDER + "\r\n")
+        lines.append(center("KITCHEN ORDER TICKET") + "\r\n")
         if printer_name and printer_name != category_name:
-            lines.append(f"       [{printer_name}]       \r\n")
-        lines.extend([
-            f"     *** [ {round_title} ] ***    \r\n",
-            "================================\r\n",
-            f"Table: {table_name}\r\n",
-            f"Order: {order_name}\r\n",
-            f"Time:  {time_str}\r\n",
-            "--------------------------------\r\n",
-            f"STATION: {category_name.upper()}\r\n",
-            "--------------------------------\r\n",
-        ])
+            lines.append(center(f"[ {printer_name} ]") + "\r\n")
+        lines.append(center(f"*** {round_title} ***") + "\r\n")
+        lines.append(DIVIDER + "\r\n")
+        lines.append(f"Table : {table_name}\r\n")
+        lines.append(f"Order : {order_name}\r\n")
+        lines.append(f"Time  : {time_str}\r\n")
+        lines.append(THIN_LINE + "\r\n")
+        lines.append(center(f"STATION: {category_name.upper()}") + "\r\n")
+        lines.append(THIN_LINE + "\r\n")
 
         for itm in items:
-            qty = itm.get('qty', 1)
+            qty  = itm.get('qty', 1)
             name = itm.get('name', '')
             note = itm.get('note', '')
-            lines.append(f"{qty}x {name}\r\n")
+            lines.append(f"  {qty}x  {name}\r\n")
             if note:
-                lines.append(f"   -> Note: {note}\r\n")
+                lines.append(f"       -> {note}\r\n")
 
-        lines.extend([
-            "--------------------------------\r\n",
-            f"--- STATION: {category_name.upper()} ---\r\n",
-            "================================\r\n",
-        ])
+        lines.append(DIVIDER + "\r\n")
+        lines.append(center("--- END OF TICKET ---") + "\r\n")
+        lines.append("\r\n\r\n\r\n")  # Bottom margin / paper feed
 
         raw_text = "".join(lines)
-        safe_text = raw_text.replace('↳', '->').replace('–', '-').replace('—', '-')
-        payload = ESC_INIT + ESC_ALIGN_LEFT + safe_text.encode('ascii', errors='replace') + FEED_AND_CUT
+        # Sanitize to safe ASCII (Brother printers strict about encoding)
+        safe_text = (
+            raw_text
+            .replace('\u2192', '->')   # →
+            .replace('\u2190', '<-')   # ←
+            .replace('\u2013', '-')    # –
+            .replace('\u2014', '-')    # —
+            .replace('\u21b3', '->')   # ↳
+            .replace('\u2714', 'OK')   # ✔
+            .replace('\u2716', 'X')    # ✖
+        )
+        payload = safe_text.encode('ascii', errors='replace')
 
         sock = None
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(3.0)
+            sock.settimeout(5.0)
             sock.connect((ip, int(port or 9100)))
             sock.sendall(payload)
-            time.sleep(0.2)
+            time_mod.sleep(0.3)
             try:
                 sock.shutdown(socket.SHUT_WR)
             except Exception:
                 pass
             sock.close()
-            _log.info("Direct ESC/POS ticket printed successfully to %s:%s for %s", ip, port, category_name)
+            _log.info("KOT ticket sent successfully to %s:%s for station [%s]", ip, port, category_name)
             return True, None
         except Exception as e:
-            _log.warning("Direct ESC/POS socket print failed for %s:%s - %s", ip, port, e)
+            _log.warning("KOT RAW print failed for %s:%s - %s", ip, port, e)
             if sock:
                 try:
                     sock.close()
