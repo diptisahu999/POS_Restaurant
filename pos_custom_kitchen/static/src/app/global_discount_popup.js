@@ -6,12 +6,14 @@ import { Dialog } from "@web/core/dialog/dialog";
 export class GlobalDiscountPopup extends Component {
     static template = "pos_custom_kitchen.GlobalDiscountPopup";
     static components = { Dialog };
-    static props = ["close", "getPayload", "startingValue"];
+    static props = ["close", "getPayload", "startingValue", "subtotal"];
 
     setup() {
         super.setup();
         this.state = useState({
+            discountType: "percentage", // "percentage" or "fixed"
             percentage: this.props.startingValue || "",
+            fixedAmount: "",
             reason: "",
             quickReasons: [
                 "Complimentary",
@@ -22,8 +24,16 @@ export class GlobalDiscountPopup extends Component {
         });
     }
 
+    setDiscountType(type) {
+        this.state.discountType = type;
+    }
+
     onPercentageInput(ev) {
         this.state.percentage = ev.target.value;
+    }
+
+    onFixedAmountInput(ev) {
+        this.state.fixedAmount = ev.target.value;
     }
 
     onReasonInput(ev) {
@@ -35,8 +45,18 @@ export class GlobalDiscountPopup extends Component {
     }
 
     confirm() {
+        const type = this.state.discountType;
+        let value = 0;
+        
+        if (type === "percentage") {
+            value = parseFloat(this.state.percentage) || 0;
+        } else {
+            value = parseFloat(this.state.fixedAmount) || 0;
+        }
+
         this.props.getPayload({
-            percentage: parseFloat(this.state.percentage),
+            type: type,
+            value: value,
             reason: this.state.reason
         });
         this.props.close();

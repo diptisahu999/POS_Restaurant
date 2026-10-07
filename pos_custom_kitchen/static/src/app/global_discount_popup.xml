@@ -4,21 +4,55 @@
         <Dialog title="'Apply Global Discount'">
             <div>
                 <div class="mb-4">
-                    <label class="form-label fw-bold" style="font-size:14px;">Discount Percentage (%)</label>
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text"><i class="fa fa-percent"/></span>
-                        <input type="number" 
-                               class="form-control text-end fs-4" 
-                               placeholder="10" 
-                               min="0" max="100" 
-                               t-att-value="state.percentage"
-                               t-on-input="onPercentageInput"
-                               style="font-weight:bold;"/>
+                    <div class="d-flex justify-content-center gap-3 mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="discountType" id="typePercent" value="percentage"
+                                   t-att-checked="state.discountType === 'percentage'"
+                                   t-on-click="() => this.setDiscountType('percentage')" />
+                            <label class="form-check-label fw-bold" for="typePercent">Percentage (%)</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="discountType" id="typeFixed" value="fixed"
+                                   t-att-checked="state.discountType === 'fixed'"
+                                   t-on-click="() => this.setDiscountType('fixed')" />
+                            <label class="form-check-label fw-bold" for="typeFixed">Fixed Amount</label>
+                        </div>
+                    </div>
+
+                    <div t-if="state.discountType === 'percentage'">
+                        <label class="form-label fw-bold" style="font-size:14px;">Discount Percentage (%)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="fa fa-percent"/></span>
+                            <input type="number" 
+                                   class="form-control text-end fs-4" 
+                                   placeholder="10" 
+                                   min="0" max="100" 
+                                   t-att-value="state.percentage"
+                                   t-on-input="onPercentageInput"
+                                   style="font-weight:bold;"/>
+                        </div>
+                    </div>
+
+                    <div t-if="state.discountType === 'fixed'">
+                        <label class="form-label fw-bold" style="font-size:14px;">Fixed Discount Amount</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="fa fa-money"/></span>
+                            <input type="number" 
+                                   class="form-control text-end fs-4" 
+                                   placeholder="0.00" 
+                                   min="0" 
+                                   t-att-max="props.subtotal"
+                                   t-att-value="state.fixedAmount"
+                                   t-on-input="onFixedAmountInput"
+                                   style="font-weight:bold;"/>
+                        </div>
+                        <div class="form-text text-end mt-1">Maximum allowed: <t t-esc="env.utils.formatCurrency(props.subtotal)"/></div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="form-label fw-bold" style="font-size:14px;">Reason for Discount</label>
+                    <t t-set="isValidValue" t-value="(state.discountType === 'percentage' and state.percentage &gt; 0) or (state.discountType === 'fixed' and state.fixedAmount &gt; 0)"/>
+                    <label class="form-label fw-bold" style="font-size:14px;">Reason for Discount <span class="text-danger" t-if="isValidValue">*</span></label>
                     <div class="d-flex flex-wrap gap-2 mb-2">
                         <t t-foreach="state.quickReasons" t-as="quickReason" t-key="quickReason">
                             <button type="button" 
@@ -41,7 +75,10 @@
                 <button class="btn btn-secondary me-2 px-4" t-on-click="cancel">
                     Discard
                 </button>
-                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="state.percentage === '' || state.percentage &lt; 0">
+                <t t-set="isInvalidValue" t-value="(state.discountType === 'percentage' and (state.percentage === '' or state.percentage &lt; 0)) or (state.discountType === 'fixed' and (state.fixedAmount === '' or state.fixedAmount &lt; 0))"/>
+                <t t-set="isValidValue" t-value="(state.discountType === 'percentage' and state.percentage &gt; 0) or (state.discountType === 'fixed' and state.fixedAmount &gt; 0)"/>
+                
+                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="isInvalidValue or (isValidValue and !state.reason.trim())">
                     Apply Discount
                 </button>
             </t>
