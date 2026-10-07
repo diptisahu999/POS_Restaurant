@@ -7,21 +7,26 @@ import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 
 patch(ControlButtons.prototype, {
     async clickDiscount() {
+        const order = this.pos.getOrder();
+        if (!order) {
+            return;
+        }
+        
+        const subtotal = typeof order.get_total_without_tax === "function" ? order.get_total_without_tax() : (order.priceExcl || 0);
+
         // Open our custom popup
         const payload = await makeAwaitable(this.dialog, GlobalDiscountPopup, {
             startingValue: 10,
+            subtotal: subtotal,
         });
 
         if (!payload) {
             return;
         }
 
-        const percent = Math.max(0, Math.min(100, payload.percentage));
-        const order = this.pos.getOrder();
-        if (!order) {
-            return;
-        }
-
+        const discountType = payload.type; // "percentage" or "fixed"
+        const value = discountType === "percentage" ? Math.max(0, Math.min(100, payload.value)) : Math.max(0, payload.value);
+        
         // Apply discount using the Global Discount Product to avoid reducing tax
         const discountConfig = this.pos.config.discount_product_id;
         const discountProductId = discountConfig ? (discountConfig.id || discountConfig[0] || discountConfig) : false;
@@ -69,9 +74,13 @@ patch(ControlButtons.prototype, {
         }
 
         // Apply new global discount
-        if (percent > 0) {
-            const subtotal = typeof order.get_total_without_tax === "function" ? order.get_total_without_tax() : (order.priceExcl || 0);
-            const discountAmt = - (subtotal * percent / 100.0);
+        if (value > 0) {
+            let discountAmt = 0;
+            if (discountType === "percentage") {
+                discountAmt = - (subtotal * value / 100.0);
+            } else {
+                discountAmt = - Math.min(subtotal, value); // Cannot discount more than subtotal
+            }
             
             await this.pos.addLineToOrder({
                 product_id: discountProduct,
@@ -92,7 +101,12 @@ patch(ControlButtons.prototype, {
                 
                 // Set note
                 if (payload.reason) {
-                    const note = `Discount ${percent}% - ${payload.reason}`;
+                    let note = "";
+                    if (discountType === "percentage") {
+                        note = `Discount ${value}% - ${payload.reason}`;
+                    } else {
+                        note = `Fixed Discount ${this.env.utils.formatCurrency(value)} - ${payload.reason}`;
+                    }
                     if (typeof newDiscountLine.setCustomerNote === "function") newDiscountLine.setCustomerNote(note);
                     else if (typeof newDiscountLine.set_customer_note === "function") newDiscountLine.set_customer_note(note);
                     else newDiscountLine.customer_note = note;
@@ -108,7 +122,7 @@ patch(ControlButtons.prototype, {
         }
 
         this.env.services.notification.add(
-            percent > 0 ? `${percent}% discount applied!` : "Discount removed!",
+            value > 0 ? `Discount applied!` : "Discount removed!",
             { type: "success" }
         );
     }
