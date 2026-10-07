@@ -49,7 +49,7 @@ patch(ProductScreen.prototype, {
         const roundTitle = printData.round_title || "ORDER";
         const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // 3. Process category print jobs without opening any browser popup dialog
+        // 3. Process category print jobs
         for (const [categoryName, catData] of Object.entries(printData.category_map)) {
             const items = catData.items || [];
             if (items.length === 0) {
@@ -57,7 +57,7 @@ patch(ProductScreen.prototype, {
             }
 
             if (catData.direct_printed) {
-                console.log(`[KOT Print] Successfully printed to ${categoryName} station (${catData.printer_ip}:${catData.printer_port || 9100})`);
+                console.log(`[KOT Print] Successfully printed via socket to ${categoryName} station (${catData.printer_ip}:${catData.printer_port || 9100})`);
                 continue;
             }
 
@@ -67,8 +67,86 @@ patch(ProductScreen.prototype, {
             // Route to Dynamic HTTP Printer / Proxy if configured
             if (printerUrl && (printerUrl.startsWith("http://") || printerUrl.startsWith("https://"))) {
                 this._sendToDynamicPrinterUrl(printerUrl, categoryName, printerName, items, roundTitle, tableName, orderName, now);
+            } else {
+                // Default / Blank / Browser print: Print directly using browser to Windows Default Printer (Brother DCP-L2540DW)
+                this._printViaBrowser(categoryName, printerName, items, roundTitle, tableName, orderName, now);
             }
         }
+    },
+
+    _printViaBrowser(categoryName, printerName, items, roundTitle, tableName, orderName, timeStr) {
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "none";
+        document.body.appendChild(iframe);
+
+        const itemsHtml = items.map(it => `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 15px; font-weight: bold;">
+                <span>${it.qty}x ${it.name}</span>
+            </div>
+            ${it.note ? `<div style="font-size: 13px; color: #d9534f; margin-left: 12px; margin-bottom: 6px; font-style: italic; font-weight: bold;">↳ Note: ${it.note}</div>` : ''}
+        `).join("");
+
+        const content = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>KOT - ${categoryName}</title>
+                <style>
+                    @page { margin: 4mm; size: auto; }
+                    body {
+                        font-family: 'Courier New', monospace, sans-serif;
+                        font-size: 13px;
+                        color: #000;
+                        margin: 0;
+                        padding: 8px;
+                        max-width: 320px;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .divider { border-top: 1px dashed #000; margin: 8px 0; }
+                    .double-divider { border-top: 2px solid #000; margin: 8px 0; }
+                    .header-title { font-size: 17px; font-weight: bold; letter-spacing: 1px; }
+                    .round-badge { font-size: 14px; font-weight: bold; margin: 4px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="center header-title">KITCHEN ORDER TICKET</div>
+                ${printerName && printerName !== categoryName ? `<div class="center bold">[${printerName}]</div>` : ''}
+                <div class="center round-badge">*** ${roundTitle} ***</div>
+                <div class="double-divider"></div>
+                <div><span class="bold">Table:</span> ${tableName}</div>
+                <div><span class="bold">Order:</span> ${orderName}</div>
+                <div><span class="bold">Time:</span> ${timeStr}</div>
+                <div class="divider"></div>
+                <div class="bold" style="font-size: 14px; text-transform: uppercase;">STATION: ${categoryName}</div>
+                <div class="divider"></div>
+                <div style="margin: 8px 0;">
+                    ${itemsHtml}
+                </div>
+                <div class="double-divider"></div>
+                <div class="center bold" style="font-size: 11px;">--- END OF TICKET ---</div>
+            </body>
+            </html>
+        `;
+
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(content);
+        iframe.contentWindow.document.close();
+
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            }, 3000);
+        }, 300);
     },
 
     async _sendToDynamicPrinterUrl(printerUrl, categoryName, printerName, items, roundTitle, tableName, orderName, timeStr) {

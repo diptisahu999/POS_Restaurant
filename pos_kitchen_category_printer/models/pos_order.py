@@ -273,12 +273,6 @@ class PosOrder(models.Model):
                 'note': line.note or '',
             })
 
-        # Attempt direct ESC/POS socket printing to printer IPs
-        default_ip, default_port = None, None
-        configured_cat = self.env['pos.category'].search([('printer_url', '!=', False), ('printer_url', '!=', '')], limit=1)
-        if configured_cat:
-            default_ip, default_port = configured_cat.parse_printer_ip_port()
-
         for cat_name, cat_data in category_map.items():
             pos_cat_id = cat_data.get('pos_category_id')
             pos_cat = self.env['pos.category'].browse(pos_cat_id) if pos_cat_id else None
@@ -290,11 +284,6 @@ class PosOrder(models.Model):
                 if m:
                     ip = m.group(1)
                     port = int(m.group(2)) if m.group(2) else 9100
-
-            # Fallback to default kitchen printer IP if this category doesn't have its own IP
-            if not ip and default_ip:
-                ip = default_ip
-                port = default_port
 
             if ip:
                 cat_data['printer_ip'] = ip
