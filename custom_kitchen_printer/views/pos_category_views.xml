@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_pos_category_form_view_inherit_printers" model="ir.ui.view">
+        <field name="name">pos.category.form.inherit.printers</field>
+        <field name="model">pos.category</field>
+        <field name="inherit_id" ref="point_of_sale.product_pos_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="printer_ids" widget="many2many_tags" placeholder="Select Kitchen Printers..."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Kitchen Printers menu under Point of Sale -> Configuration -->
+    <menuitem
+        id="menu_pos_kitchen_printers_config"
+        name="Kitchen Printers"
+        parent="point_of_sale.menu_point_config_product"
+        action="point_of_sale.action_pos_printer_form"
+        sequence="25"
+        groups="point_of_sale.group_pos_manager"/>
+</odoo>

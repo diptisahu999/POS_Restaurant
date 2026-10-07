@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_printer_form_inherit_network_tvs" model="ir.ui.view">
+        <field name="name">pos.printer.form.inherit.network.tvs</field>
+        <field name="model">pos.printer</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_printer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='proxy_ip']" position="after">
+                <field name="network_printer_ip" 
+                       placeholder="e.g. 192.168.1.101" 
+                       invisible="printer_type != 'network_tcp'"
+                       required="printer_type == 'network_tcp'"/>
+                <field name="network_printer_port" 
+                       invisible="printer_type != 'network_tcp'"/>
+                <div invisible="printer_type != 'network_tcp'" class="mt-2 mb-2">
+                    <button name="action_test_network_print" 
+                            type="object" 
+                            string="Test Print on Printer" 
+                            class="btn btn-outline-primary btn-sm"
+                            icon="fa-print"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
