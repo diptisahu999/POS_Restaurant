@@ -78,6 +78,7 @@ patch(ControlButtons.prototype, {
                 product_tmpl_id: discountProduct.product_tmpl_id,
                 price_unit: discountAmt,
                 qty: 1,
+                tax_ids: [],
                 price_manually_set: true,
             }, order, { force: true }, false);
 

@@ -18,7 +18,7 @@
                 </div>
 
                 <div>
-                    <label class="form-label fw-bold" style="font-size:14px;">Reason for Discount</label>
+                    <label class="form-label fw-bold" style="font-size:14px;">Reason for Discount <span class="text-danger" t-if="state.percentage &gt; 0">*</span></label>
                     <div class="d-flex flex-wrap gap-2 mb-2">
                         <t t-foreach="state.quickReasons" t-as="quickReason" t-key="quickReason">
                             <button type="button" 
@@ -41,7 +41,7 @@
                 <button class="btn btn-secondary me-2 px-4" t-on-click="cancel">
                     Discard
                 </button>
-                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="state.percentage === '' || state.percentage &lt; 0">
+                <button class="btn btn-primary px-4 fw-bold" t-on-click="confirm" t-att-disabled="state.percentage === '' || state.percentage &lt; 0 || (state.percentage &gt; 0 and !state.reason.trim())">
                     Apply Discount
                 </button>
             </t>
