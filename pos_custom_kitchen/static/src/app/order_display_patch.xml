@@ -117,12 +117,13 @@
 
     <t t-name="pos_custom_kitchen.FloorScreen" t-inherit="pos_restaurant.FloorScreen" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('info')]/div[hasclass('label')]" position="replace">
-            <div class="label fw-bolder fs-4 position-absolute top-50 start-50 translate-middle d-flex flex-column align-items-center">
-                <span t-esc="table.table_number"/>
-                <span style="font-size: 0.6em; margin-top: -2px; font-weight: 500;">
-                    <i class="fa fa-users me-1"/>
-                    <t t-esc="table.seats"/>
-                </span>
+            <div class="label fw-bolder fs-4 position-absolute top-50 start-50 translate-middle text-center w-100 px-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                Table-<t t-esc="table.table_number"/>
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('info')]" position="after">
+            <div class="position-absolute text-center text-dark fw-bold" style="top: 100%; left: 50%; transform: translateX(-50%); width: max-content; font-size: 14px; margin-top: 4px;">
+                <t t-esc="table.seats"/> person
             </div>
         </xpath>
     </t>
