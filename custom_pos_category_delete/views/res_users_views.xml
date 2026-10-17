@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_force_delete_category_access" model="ir.ui.view">
+        <field name="name">res.users.form.force.delete.category.access</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <separator string="POS Category Management Permissions"/>
+                <group name="pos_category_management_access">
+                    <field name="has_force_delete_pos_category_access" string="Allow Force Delete POS Categories" widget="boolean_toggle"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pyrefly: ignore [missing-import]
-from odoo import models, fields
+from odoo import models, fields, _
 
 class PosCategory(models.Model):
     _inherit = 'pos.category'
