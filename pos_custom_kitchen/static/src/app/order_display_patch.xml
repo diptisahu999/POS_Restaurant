@@ -17,26 +17,6 @@
                     <span>Subtotal</span>
                     <span t-esc="env.utils.formatCurrency(grossSubtotal)" class="subtotal"/>
                 </div>
-<<<<<<< Updated upstream
-                
-                <div t-if="discountAmount &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-danger fw-bolder">
-                    <span>Discount</span>
-                    <span t-esc="env.utils.formatCurrency(-discountAmount)"/>
-                </div>
-                
-                <div t-if="grossTax &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-muted">
-                    <span>Taxes</span>
-                    <span t-esc="env.utils.formatCurrency(grossTax)" class="tax"/>
-                </div>
-                
-                <div class="d-flex justify-content-between w-100 fs-5 mb-2">
-                    <span>Total</span>
-                    <span t-esc="env.utils.formatCurrency(grossTotal)" class="total"/>
-                </div>
-                
-                <div class="d-flex justify-content-between w-100 fs-3 mt-2 border-top pt-2">
-                    <span>Final Amount</span>
-=======
                 <div t-if="grossTax &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 text-muted">
                     <span>Taxes</span>
                     <span t-esc="env.utils.formatCurrency(grossTax)" class="tax"/>
@@ -51,7 +31,6 @@
                 </div>
                 <div class="d-flex justify-content-between w-100 total-row">
                     <span t-esc="discountAmount &gt; 0 ? 'Final Amount' : 'Total'"/>
->>>>>>> Stashed changes
                     <span t-esc="env.utils.formatCurrency(netTotal)"/>
                 </div>
             </div>
