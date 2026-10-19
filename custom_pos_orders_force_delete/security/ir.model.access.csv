@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_pos_order_force_delete_wizard_user,pos.order.force.delete.wizard.user,model_custom_pos_order_force_delete_wizard,base.group_user,1,1,1,1
+access_pos_session_force_delete_wizard_user,pos.session.force.delete.wizard.user,model_custom_pos_session_force_delete_wizard,base.group_user,1,1,1,1
+access_pos_payment_force_delete_wizard_user,pos.payment.force.delete.wizard.user,model_custom_pos_payment_force_delete_wizard,base.group_user,1,1,1,1
+access_pos_customer_force_delete_wizard_user,pos.customer.force.delete.wizard.user,model_custom_pos_customer_force_delete_wizard,base.group_user,1,1,1,1
+access_pos_session_force_delete,pos.session.force.delete,point_of_sale.model_pos_session,custom_pos_orders_force_delete.group_allow_force_delete_pos_orders,1,1,1,1
+access_pos_order_force_delete,pos.order.force.delete,point_of_sale.model_pos_order,custom_pos_orders_force_delete.group_allow_force_delete_pos_orders,1,1,1,1
+access_pos_order_line_force_delete,pos.order.line.force.delete,point_of_sale.model_pos_order_line,custom_pos_orders_force_delete.group_allow_force_delete_pos_orders,1,1,1,1
+access_pos_payment_force_delete,pos.payment.force.delete,point_of_sale.model_pos_payment,custom_pos_orders_force_delete.group_allow_force_delete_pos_orders,1,1,1,1

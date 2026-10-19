@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action: appears in Action menu on res.partner (POS Customers) list and form -->
+    <record id="action_server_force_delete_pos_customer" model="ir.actions.server">
+        <field name="name">Force Delete (POS)</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="group_ids" eval="[(4, ref('custom_pos_orders_force_delete.group_allow_force_delete_pos_orders'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_force_delete_pos_customer()
+        </field>
+    </record>
+
+    <!-- Force Delete button in res.partner (POS Customers) form view header -->
+    <record id="pos_customer_form_view_inherit_force_delete" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.pos.force.delete</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_force_delete_pos_customer"
+                            string="Force Delete (POS)"
+                            type="object"
+                            class="btn-danger"
+                            groups="custom_pos_orders_force_delete.group_allow_force_delete_pos_orders"/>
+                </header>
+            </xpath>
+        </field>
+    </record>
+</odoo>

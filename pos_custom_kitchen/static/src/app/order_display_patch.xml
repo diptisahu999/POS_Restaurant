@@ -2,7 +2,7 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_custom_kitchen.OrderDisplay" t-inherit="point_of_sale.OrderDisplay" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('order-summary')]" position="replace">
-            <div t-if="props.mode !== 'receipt'" class="order-summary d-flex flex-column gap-1 p-2 border-bottom fw-bolder lh-sm">
+            <div t-if="props.mode !== 'receipt'" class="order-summary d-flex flex-column gap-1 py-1 px-2 border-bottom fw-bold lh-sm">
                 <t t-set="netSubtotal" t-value="order.priceExcl"/>
                 <t t-set="netTotal" t-value="order.priceIncl"/>
                 <t t-set="netTax" t-value="netTotal - netSubtotal"/>
@@ -13,10 +13,11 @@
                 <t t-set="discountAmount" t-value="grossSubtotal - netSubtotal"/>
                 <t t-set="grossTotal" t-value="netTotal"/>
                 
-                <div class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-muted">
+                <div class="tax-info subentry d-flex justify-content-between w-100 text-muted">
                     <span>Subtotal</span>
                     <span t-esc="env.utils.formatCurrency(grossSubtotal)" class="subtotal"/>
                 </div>
+<<<<<<< Updated upstream
                 
                 <div t-if="discountAmount &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 fs-6 text-danger fw-bolder">
                     <span>Discount</span>
@@ -35,6 +36,22 @@
                 
                 <div class="d-flex justify-content-between w-100 fs-3 mt-2 border-top pt-2">
                     <span>Final Amount</span>
+=======
+                <div t-if="grossTax &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 text-muted">
+                    <span>Taxes</span>
+                    <span t-esc="env.utils.formatCurrency(grossTax)" class="tax"/>
+                </div>
+                <div t-if="discountAmount &gt; 0" class="d-flex justify-content-between w-100 text-muted subentry">
+                    <span>Gross Total</span>
+                    <span t-esc="env.utils.formatCurrency(grossTotal)" class="total"/>
+                </div>
+                <div t-if="discountAmount &gt; 0" class="tax-info subentry d-flex justify-content-between w-100 text-danger fw-bolder">
+                    <span>Discount</span>
+                    <span t-esc="env.utils.formatCurrency(-discountAmount)"/>
+                </div>
+                <div class="d-flex justify-content-between w-100 total-row">
+                    <span t-esc="discountAmount &gt; 0 ? 'Final Amount' : 'Total'"/>
+>>>>>>> Stashed changes
                     <span t-esc="env.utils.formatCurrency(netTotal)"/>
                 </div>
             </div>

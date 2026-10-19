@@ -3,12 +3,34 @@
     <t t-name="pos_custom_kitchen.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
         <xpath expr="//ActionpadWidget" position="after">
             <button
-                class="btn btn-lg lh-sm btn-danger w-100 p-3"
-                style="margin-top: 5px; background-color: #dc3545; border-color: #dc3545;"
+                class="btn btn-danger w-100 send-to-kitchen-btn d-flex align-items-center justify-content-center gap-2"
                 t-on-click="() => this.customSendToKitchen()"
                 t-if="!currentOrder?.isEmpty()">
-                <span class="d-block text-white" style="font-size: 26px; font-weight: 900; letter-spacing: 1px;">🍳 Send to Kitchen</span>
+                <span class="kitchen-btn-icon">🍳</span>
+                <span class="kitchen-btn-text">Send to Kitchen</span>
             </button>
+        </xpath>
+
+        <!-- Keypad Toggle Bar above Numpad for Responsive Screen Space Management -->
+        <xpath expr="//Numpad" position="before">
+            <div t-if="!currentOrder?.isEmpty() and pos.getOrder()?.uiState.selected_orderline_uuid"
+                 class="numpad-toggle-bar d-flex justify-content-between align-items-center px-2"
+                 t-on-click="() => this.toggleNumpad()"
+                 title="Click to toggle keypad">
+                <span class="d-flex align-items-center gap-1 fw-bold text-secondary" style="font-size: 0.8rem;">
+                    <i class="fa fa-calculator text-primary"/>
+                    <span>Keypad (<t t-esc="this.pos.numpadMode === 'quantity' ? 'Qty' : (this.pos.numpadMode === 'price' ? 'Price' : '%')"/>)</span>
+                </span>
+                <span class="badge bg-secondary-subtle text-dark d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                    <span t-esc="this.state.showNumpad ? 'Hide Keypad' : 'Show Keypad'"/>
+                    <i t-attf-class="fa fa-chevron-{{ this.state.showNumpad ? 'down' : 'up' }}"/>
+                </span>
+            </div>
+        </xpath>
+
+        <!-- Collapsible Numpad condition -->
+        <xpath expr="//Numpad" position="attributes">
+            <attribute name="t-if">!currentOrder?.isEmpty() and pos.getOrder()?.uiState.selected_orderline_uuid and this.state.showNumpad</attribute>
         </xpath>
     </t>
 </templates>

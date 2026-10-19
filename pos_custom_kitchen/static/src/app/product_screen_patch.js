@@ -7,6 +7,13 @@ import { KitchenRemarksPopup } from "@pos_custom_kitchen/app/kitchen_remarks_pop
 
 
 patch(ProductScreen.prototype, {
+    setup() {
+        super.setup(...arguments);
+        this.state.showNumpad = true;
+    },
+    toggleNumpad() {
+        this.state.showNumpad = !this.state.showNumpad;
+    },
     async customSendToKitchen() {
         const order = this.currentOrder;
         if (!order || order.isEmpty()) {
