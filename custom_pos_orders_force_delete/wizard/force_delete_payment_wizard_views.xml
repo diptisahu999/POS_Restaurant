@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_custom_pos_payment_force_delete_wizard_form" model="ir.ui.view">
+        <field name="name">custom.pos.payment.force.delete.wizard.form</field>
+        <field name="model">custom.pos.payment.force.delete.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Force Delete POS Payment(s)">
+                <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                    <i class="fa fa-exclamation-triangle fa-2x me-3 text-danger" title="Danger"/>
+                    <div>
+                        <strong>Warning:</strong> You are about to <strong>permanently delete</strong> POS payment(s).
+                        This cannot be undone.
+                    </div>
+                </div>
+                <p class="fs-6 mb-2">Are you sure you want to force delete payment(s):</p>
+                <div class="p-2 mb-3 bg-light border rounded fw-bold text-danger">
+                    <field name="payment_names" readonly="1"/>
+                </div>
+                <footer>
+                    <button string="Force Delete" name="action_confirm_force_delete" type="object" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

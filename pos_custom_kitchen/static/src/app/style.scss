@@ -2,13 +2,400 @@
     display: none !important;
 }
 
-/* Ensure the control buttons container wraps properly now that we have more buttons */
-.control-buttons {
-    flex-wrap: wrap !important;
-    justify-content: flex-start !important;
-    
-    > button, > div {
-        flex: 1 1 auto;
-        min-width: fit-content;
+/* ========================================================
+   RESPONSIVE POS LAYOUT: LEFT PANE, ORDERLINES, & NUMPAD
+   ======================================================== */
+
+.product-screen {
+    /* Left pane container */
+    .leftpane {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        width: 375px !important;
+        max-width: 375px !important;
+        flex-shrink: 0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        background-color: #ffffff !important;
+
+        @media (max-width: 1200px) {
+            width: 330px !important;
+            max-width: 330px !important;
+        }
+
+        /* Order Summary / Order Display Root */
+        > :first-child {
+            flex: 1 1 auto !important;
+            min-height: 120px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+    }
+
+    /* Product Selection / Orderlines List */
+    .order-container {
+        flex: 1 1 auto !important;
+        min-height: 90px !important;
+        overflow-y: auto !important;
+        max-height: none !important;
+        padding: 6px 8px !important;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+            &:hover {
+                background-color: #94a3b8;
+            }
+        }
+    }
+
+    /* Modern Restaurant Orderline Cards */
+    .orderline {
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+        margin-bottom: 4px !important;
+        border: 1px solid #f1f5f9 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        transition: all 0.15s ease !important;
+
+        &:hover {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        &.selected {
+            background-color: #eff6ff !important;
+            border-color: #bfdbfe !important;
+            border-left: 4px solid #3b82f6 !important;
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.12) !important;
+        }
+
+        .line-details {
+            font-size: 0.9rem !important;
+            line-height: 1.25 !important;
+        }
+
+        .qty {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 2px 7px !important;
+            margin-right: 6px;
+            font-weight: 800 !important;
+            color: #1e293b !important;
+            font-size: 0.85rem !important;
+        }
+
+        .price {
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            font-size: 0.95rem !important;
+        }
+    }
+
+    /* Order Summary (Subtotal, Taxes, Total) */
+    .order-summary {
+        background-color: #f8fafc !important;
+        border-top: 1px solid #e2e8f0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 5px 10px !important;
+        flex-shrink: 0 !important;
+
+        .subentry {
+            font-size: 0.82rem !important;
+            color: #64748b !important;
+            line-height: 1.35 !important;
+        }
+
+        .total-row {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            line-height: 1.3 !important;
+            margin-top: 2px !important;
+            border-top: 1px dashed #cbd5e1 !important;
+            padding-top: 3px !important;
+        }
+    }
+
+    /* Pads Container */
+    .pads {
+        flex-shrink: 0 !important;
+        padding: 4px 8px !important;
+        background-color: #ffffff !important;
+    }
+
+    /* Control Buttons */
+    .control-buttons {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+
+        > button, > div {
+            flex: 1 1 auto !important;
+            min-width: fit-content !important;
+            padding: 4px 8px !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+            height: 30px !important;
+            line-height: 1 !important;
+            border-radius: 6px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 4px !important;
+        }
+    }
+
+    /* Keypad Toggle Bar */
+    .numpad-toggle-bar {
+        height: 28px !important;
+        margin-top: 3px !important;
+        margin-bottom: 2px !important;
+        padding: 2px 8px !important;
+        border-radius: 6px !important;
+        background-color: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        user-select: none !important;
+        cursor: pointer !important;
+        transition: background-color 0.12s ease !important;
+
+        &:hover {
+            background-color: #e2e8f0 !important;
+        }
+    }
+
+    /* Subpads */
+    .subpads {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important;
+        padding-top: 2px !important;
+    }
+
+    /* Responsive Numpad */
+    .numpad {
+        display: grid !important;
+        gap: 2px !important;
+        margin-top: 2px !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        border: 1px solid #e2e8f0 !important;
+        background: #f8fafc !important;
+        padding: 3px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+
+        .numpad-button {
+            height: 35px !important;
+            min-height: 32px !important;
+            max-height: 38px !important;
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            line-height: 1 !important;
+            padding: 2px !important;
+            border-radius: 6px !important;
+            border: 1px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.1s ease !important;
+
+            &:hover {
+                background-color: #f1f5f9 !important;
+                border-color: #cbd5e1 !important;
+            }
+
+            &:active {
+                background-color: #e2e8f0 !important;
+                transform: scale(0.95);
+            }
+
+            /* Mode Button: Quantity */
+            &.numpad-qty {
+                font-size: 0.88rem !important;
+                font-weight: 800 !important;
+                color: #0d9488 !important;
+                background-color: #f0fdfa !important;
+                border-color: #ccfbf1 !important;
+
+                &.active {
+                    background-color: #0d9488 !important;
+                    color: #ffffff !important;
+                    border-color: #0f766e !important;
+                    box-shadow: 0 1px 3px rgba(13, 148, 136, 0.3) !important;
+                }
+            }
+
+            /* Mode Button: Discount */
+            &.numpad-discount {
+                font-size: 0.95rem !important;
+                font-weight: 800 !important;
+                color: #7c3aed !important;
+                background-color: #f5f3ff !important;
+                border-color: #ede9fe !important;
+
+                &.active {
+                    background-color: #7c3aed !important;
+                    color: #ffffff !important;
+                    border-color: #6d28d9 !important;
+                    box-shadow: 0 1px 3px rgba(124, 58, 237, 0.3) !important;
+                }
+            }
+
+            /* Mode Button: Price */
+            &.numpad-price {
+                font-size: 0.88rem !important;
+                font-weight: 800 !important;
+                color: #0284c7 !important;
+                background-color: #f0f9ff !important;
+                border-color: #e0f2fe !important;
+
+                &.active {
+                    background-color: #0284c7 !important;
+                    color: #ffffff !important;
+                    border-color: #0369a1 !important;
+                    box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3) !important;
+                }
+            }
+        }
+    }
+
+    /* Actionpad (Payment / New) */
+    .actionpad {
+        margin-top: 3px !important;
+        gap: 3px !important;
+
+        .pay-order-button, button {
+            height: 38px !important;
+            padding: 4px 12px !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .pay-order-button {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            border: none !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25) !important;
+
+            &:hover {
+                background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+            }
+        }
+    }
+
+    /* Send to Kitchen Button */
+    .send-to-kitchen-btn {
+        height: 40px !important;
+        padding: 6px 14px !important;
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        margin-top: 3px !important;
+        border-radius: 8px !important;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        border: none !important;
+        box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3) !important;
+        color: #ffffff !important;
+        transition: all 0.15s ease !important;
+
+        &:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.4) !important;
+            transform: translateY(-1px);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
     }
 }
+
+/* ========================================================
+   MEDIA QUERY ADJUSTMENTS FOR SHORT SCREENS (< 720px height)
+   ======================================================== */
+@media (max-height: 720px) {
+    .product-screen {
+        .leftpane {
+            width: 340px !important;
+            max-width: 340px !important;
+        }
+
+        .order-container {
+            min-height: 70px !important;
+            padding: 4px 6px !important;
+        }
+
+        .orderline {
+            padding: 4px 8px !important;
+            margin-bottom: 3px !important;
+
+            .line-details {
+                font-size: 0.85rem !important;
+            }
+
+            .qty {
+                padding: 1px 5px !important;
+                font-size: 0.8rem !important;
+            }
+
+            .price {
+                font-size: 0.88rem !important;
+            }
+        }
+
+        .order-summary {
+            padding: 4px 8px !important;
+
+            .subentry {
+                font-size: 0.78rem !important;
+            }
+            .total-row {
+                font-size: 0.95rem !important;
+            }
+        }
+
+        .control-buttons > button, .control-buttons > div {
+            height: 28px !important;
+            padding: 2px 6px !important;
+            font-size: 0.75rem !important;
+        }
+
+        .numpad .numpad-button {
+            height: 29px !important;
+            min-height: 28px !important;
+            font-size: 0.92rem !important;
+        }
+
+        .actionpad .pay-order-button, .actionpad button {
+            height: 34px !important;
+            font-size: 0.88rem !important;
+            padding: 2px 8px !important;
+        }
+
+        .send-to-kitchen-btn {
+            height: 36px !important;
+            font-size: 0.95rem !important;
+        }
+    }
+}
+

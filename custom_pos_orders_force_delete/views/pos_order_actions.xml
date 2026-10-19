@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action: appears in Action menu on POS Order list and form -->
+    <record id="action_server_force_delete_pos_order" model="ir.actions.server">
+        <field name="name">Force Delete</field>
+        <field name="model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="group_ids" eval="[(4, ref('custom_pos_orders_force_delete.group_allow_force_delete_pos_orders'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_force_delete()
+        </field>
+    </record>
+
+    <!-- Force Delete button injected into existing pos.order form header -->
+    <record id="pos_order_form_view_inherit_force_delete" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.force.delete</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_force_delete"
+                        string="Force Delete"
+                        type="object"
+                        class="btn-danger"
+                        groups="custom_pos_orders_force_delete.group_allow_force_delete_pos_orders"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
