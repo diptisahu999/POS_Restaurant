@@ -10,9 +10,92 @@ patch(ProductScreen.prototype, {
     setup() {
         super.setup(...arguments);
         this.state.showNumpad = true;
+
+        // Restore saved left pane width or use default (380px)
+        let initialWidth = 380;
+        try {
+            const savedWidth = localStorage.getItem("pos_leftpane_width");
+            if (savedWidth) {
+                const parsed = parseInt(savedWidth, 10);
+                if (parsed >= 280 && parsed <= 850) {
+                    initialWidth = parsed;
+                }
+            }
+        } catch (e) {
+            console.warn("Unable to read localStorage for pos_leftpane_width:", e);
+        }
+        this.state.leftPaneWidth = initialWidth;
     },
     toggleNumpad() {
         this.state.showNumpad = !this.state.showNumpad;
+    },
+    onResizerPointerDown(event) {
+        if (event.button !== 0) return; // Only respond to primary button (left click)
+        const resizer = event.currentTarget;
+        const screenEl = resizer.closest(".product-screen");
+        if (!screenEl) return;
+        const leftPane = screenEl.querySelector(".leftpane");
+        if (!leftPane) return;
+
+        const startX = event.clientX;
+        const startWidth = leftPane.getBoundingClientRect().width;
+
+        try {
+            resizer.setPointerCapture(event.pointerId);
+        } catch (err) {}
+
+        resizer.classList.add("is-dragging");
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "col-resize";
+
+        const onPointerMove = (e) => {
+            const deltaX = e.clientX - startX;
+            let newWidth = Math.round(startWidth + deltaX);
+            const minWidth = 280;
+            const maxWidth = Math.min(Math.round(window.innerWidth * 0.65), 750);
+            newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+
+            // Instant responsive CSS variable update
+            screenEl.style.setProperty("--pos-leftpane-width", `${newWidth}px`);
+            this.state.leftPaneWidth = newWidth;
+        };
+
+        const onPointerUp = (e) => {
+            try {
+                resizer.releasePointerCapture(event.pointerId);
+            } catch (err) {}
+
+            resizer.classList.remove("is-dragging");
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("pointerup", onPointerUp);
+            window.removeEventListener("pointercancel", onPointerUp);
+
+            try {
+                localStorage.setItem("pos_leftpane_width", String(this.state.leftPaneWidth));
+            } catch (err) {
+                console.warn("Could not save leftpane width:", err);
+            }
+        };
+
+        window.addEventListener("pointermove", onPointerMove);
+        window.addEventListener("pointerup", onPointerUp);
+        window.addEventListener("pointercancel", onPointerUp);
+    },
+    onResizerDblClick() {
+        const defaultWidth = 380;
+        const screenEl = document.querySelector(".product-screen");
+        if (screenEl) {
+            screenEl.style.setProperty("--pos-leftpane-width", `${defaultWidth}px`);
+        }
+        this.state.leftPaneWidth = defaultWidth;
+        try {
+            localStorage.removeItem("pos_leftpane_width");
+        } catch (err) {
+            console.warn("Could not clear leftpane width:", err);
+        }
     },
     async customSendToKitchen() {
         const order = this.currentOrder;

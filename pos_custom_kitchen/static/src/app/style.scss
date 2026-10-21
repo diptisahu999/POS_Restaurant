@@ -7,6 +7,8 @@
    ======================================================== */
 
 .product-screen {
+    --pos-leftpane-width: 380px;
+
     /* Left pane container */
     .leftpane {
         display: flex !important;
@@ -15,16 +17,13 @@
         max-height: 100% !important;
         min-height: 0 !important;
         overflow: hidden !important;
-        width: 375px !important;
-        max-width: 375px !important;
+        width: var(--pos-leftpane-width, 380px) !important;
+        min-width: 280px !important;
+        max-width: 750px !important;
         flex-shrink: 0 !important;
         border-right: 1px solid #e2e8f0 !important;
         background-color: #ffffff !important;
-
-        @media (max-width: 1200px) {
-            width: 330px !important;
-            max-width: 330px !important;
-        }
+        user-select: text !important;
 
         /* Order Summary / Order Display Root */
         > :first-child {
@@ -86,6 +85,15 @@
         .line-details {
             font-size: 0.9rem !important;
             line-height: 1.25 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 6px !important;
+
+            .product-name {
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+            }
         }
 
         .qty {
@@ -96,12 +104,16 @@
             font-weight: 800 !important;
             color: #1e293b !important;
             font-size: 0.85rem !important;
+            flex-shrink: 0 !important;
         }
 
         .price {
             font-weight: 800 !important;
             color: #0f172a !important;
             font-size: 0.95rem !important;
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            margin-left: auto !important;
         }
     }
 
@@ -281,8 +293,12 @@
         margin-top: 3px !important;
         gap: 3px !important;
 
-        .pay-order-button, button {
+        .pay-order-button,
+        .pay-order-button-restaurant,
+        button {
             height: 38px !important;
+            min-height: 38px !important;
+            max-height: 38px !important;
             padding: 4px 12px !important;
             font-size: 0.95rem !important;
             font-weight: 700 !important;
@@ -290,9 +306,11 @@
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            line-height: 1.2 !important;
         }
 
-        .pay-order-button {
+        .pay-order-button,
+        .pay-order-button-restaurant {
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
             border: none !important;
             color: #ffffff !important;
@@ -302,6 +320,13 @@
                 background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
             }
         }
+    }
+
+    .pay-order-button,
+    .pay-order-button-restaurant {
+        min-height: 38px !important;
+        max-height: 38px !important;
+        height: 38px !important;
     }
 
     /* Send to Kitchen Button */
@@ -328,6 +353,45 @@
             transform: translateY(0);
         }
     }
+
+    /* Draggable Splitter Bar between Left Pane & Right Pane */
+    .pos-pane-resizer {
+        width: 12px !important;
+        margin-left: -6px !important;
+        margin-right: -6px !important;
+        cursor: col-resize !important;
+        z-index: 100 !important;
+        position: relative !important;
+        user-select: none !important;
+        touch-action: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        transition: background-color 0.15s ease !important;
+
+        .resizer-grip {
+            display: block;
+            width: 4px;
+            height: 44px;
+            border-radius: 4px;
+            background-color: #cbd5e1;
+            transition: all 0.15s ease;
+            pointer-events: none;
+        }
+
+        &:hover,
+        &.is-dragging {
+            background-color: rgba(2, 132, 199, 0.1) !important;
+
+            .resizer-grip {
+                background-color: #0284c7 !important;
+                width: 5px !important;
+                height: 56px !important;
+                box-shadow: 0 0 6px rgba(2, 132, 199, 0.4) !important;
+            }
+        }
+    }
 }
 
 /* ========================================================
@@ -336,8 +400,8 @@
 @media (max-height: 720px) {
     .product-screen {
         .leftpane {
-            width: 340px !important;
-            max-width: 340px !important;
+            width: var(--pos-leftpane-width, 340px) !important;
+            max-width: 750px !important;
         }
 
         .order-container {
@@ -386,8 +450,14 @@
             font-size: 0.92rem !important;
         }
 
-        .actionpad .pay-order-button, .actionpad button {
+        .actionpad .pay-order-button,
+        .actionpad .pay-order-button-restaurant,
+        .actionpad button,
+        .pay-order-button,
+        .pay-order-button-restaurant {
             height: 34px !important;
+            min-height: 34px !important;
+            max-height: 34px !important;
             font-size: 0.88rem !important;
             padding: 2px 8px !important;
         }
