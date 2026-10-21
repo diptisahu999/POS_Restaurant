@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_hide_other_modules" model="ir.ui.view">
+        <field name="name">res.users.form.hide.other.modules</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <separator string="Hide Other Modules Permissions"/>
+                <group name="hide_other_modules_group">
+                    <group>
+                        <field name="hide_discuss" string="Hide Discuss" widget="boolean_toggle"/>
+                        <field name="hide_employees" string="Hide Employees" widget="boolean_toggle"/>
+                    </group>
+                    <group>
+                        <field name="hide_todo" string="Hide To-do" widget="boolean_toggle"/>
+                        <field name="hide_link_tracker" string="Hide Link Tracker" widget="boolean_toggle"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
