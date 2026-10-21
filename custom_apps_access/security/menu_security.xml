@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Restrict the main Apps menu to group_apps_access -->
+    <record id="base.menu_management" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+
+    <!-- Restrict child Apps menus -->
+    <record id="base.menu_apps" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+    <record id="base.menu_module_tree" model="ir.ui.menu">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+
+    <!-- Restrict the Main Apps action to group_apps_access -->
+    <record id="base.open_module_tree" model="ir.actions.act_window">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+
+    <!-- Restrict Update Apps List action to group_apps_access -->
+    <record id="base.action_view_base_module_update" model="ir.actions.act_window">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+
+    <!-- Restrict Apply Scheduled Upgrades action to group_apps_access -->
+    <record id="base.action_view_base_module_upgrade" model="ir.actions.act_window">
+        <field name="group_ids" eval="[(6, 0, [ref('group_apps_access')])]"/>
+    </record>
+</odoo>

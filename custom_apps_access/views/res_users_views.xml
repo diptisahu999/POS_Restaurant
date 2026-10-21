@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_apps_access" model="ir.ui.view">
+        <field name="name">res.users.form.apps.access</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <separator string="Apps Management Permissions"/>
+                <group name="apps_management_access">
+                    <field name="has_apps_access" string="Allow Apps Module Access" widget="boolean_toggle"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
