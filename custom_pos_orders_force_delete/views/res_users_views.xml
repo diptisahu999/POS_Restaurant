@@ -9,7 +9,7 @@
                 <separator string="POS Orders Management Permissions"/>
                 <group name="pos_orders_management_access">
                     <field name="has_force_delete_pos_orders_access"
-                           string="Allow Force Delete POS Orders / Sessions / Payments / Customers"
+                           string="Allow Force Delete POS Orders / Sessions / Payments / Customers / Invoices"
                            widget="boolean_toggle"/>
                 </group>
             </xpath>
