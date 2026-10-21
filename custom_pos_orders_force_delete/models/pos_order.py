@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+# pyrefly: ignore[missing-import]
 from odoo import models, api, _
+# pyrefly: ignore[missing-import]
 from odoo.exceptions import UserError
 
 

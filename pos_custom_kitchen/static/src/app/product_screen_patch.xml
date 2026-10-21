@@ -32,5 +32,21 @@
         <xpath expr="//Numpad" position="attributes">
             <attribute name="t-if">!currentOrder?.isEmpty() and pos.getOrder()?.uiState.selected_orderline_uuid and this.state.showNumpad</attribute>
         </xpath>
+
+        <!-- Set dynamic leftpane width CSS variable on product-screen container -->
+        <xpath expr="//div[hasclass('product-screen')]" position="attributes">
+            <attribute name="t-attf-style">--pos-leftpane-width: {{ this.state.leftPaneWidth }}px;</attribute>
+        </xpath>
+
+        <!-- Draggable Resizer Splitter between Left Pane and Right Pane -->
+        <xpath expr="//div[hasclass('leftpane')]" position="after">
+            <div t-if="!this.pos.isSmallProductScreen"
+                 class="pos-pane-resizer d-none d-md-flex align-items-center justify-content-center"
+                 t-on-pointerdown="onResizerPointerDown"
+                 t-on-dblclick="onResizerDblClick"
+                 title="Drag to resize cart and products, double-click to reset">
+                <span class="resizer-grip"/>
+            </div>
+        </xpath>
     </t>
 </templates>
