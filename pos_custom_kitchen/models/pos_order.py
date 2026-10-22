@@ -45,6 +45,21 @@ class PosOrder(models.Model):
         ('done', 'Served')
     ], string='Kitchen Status', default='pending', tracking=True)
 
+    bill_printed = fields.Boolean(
+        string='Bill Printed',
+        default=False,
+        help='Whether the bill/receipt has been printed for this order'
+    )
+
+    @api.model
+    def _process_order(self, order, existing_order):
+        order_id = super()._process_order(order, existing_order)
+        if order.get('bill_printed') is not None:
+            pos_order = self.browse(order_id)
+            if pos_order.exists() and pos_order.bill_printed != order.get('bill_printed'):
+                pos_order.write({'bill_printed': order['bill_printed']})
+        return order_id
+
     order_status = fields.Selection([
         ('pending', 'Waiting'),
         ('preparing', 'Preparing'),
