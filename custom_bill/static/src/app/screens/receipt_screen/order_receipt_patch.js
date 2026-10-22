@@ -194,27 +194,21 @@ patch(OrderReceipt.prototype, {
         return "Discount";
     },
 
-    get netTaxableAmount() {
-        return Math.max(0, this.subtotalAmount - this.discountAmount);
-    },
-
     get taxAmount() {
-        // Enforce 5% Tax on net taxable amount
-        return Math.round(this.netTaxableAmount * 0.05 * 100) / 100;
+        // 5% Tax calculated on Sub Total (discount does not reduce tax)
+        return Math.round(this.subtotalAmount * 0.05 * 100) / 100;
     },
 
     get sgstAmount() {
-        // 2.5% SGST
-        return Math.round(this.netTaxableAmount * 0.025 * 100) / 100;
+        return Math.round(this.subtotalAmount * 0.025 * 100) / 100;
     },
 
     get cgstAmount() {
-        // 2.5% CGST (total 5% minus SGST to prevent 1 paise rounding discrepancy)
         return Math.round((this.taxAmount - this.sgstAmount) * 100) / 100;
     },
 
     get grossPayableAmount() {
-        return this.netTaxableAmount + this.taxAmount;
+        return Math.max(0, this.subtotalAmount - this.discountAmount) + this.taxAmount;
     },
 
     get roundingAmount() {
