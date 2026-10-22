@@ -6,11 +6,12 @@
     'category': 'Point of Sale',
     'author': 'Techvizor',
     'license': 'LGPL-3',
-    'depends': ['point_of_sale', 'pos_restaurant'],
+    'depends': ['point_of_sale', 'pos_restaurant', 'pos_custom_kitchen'],
     'data': [
         'views/pos_config_views.xml',
         'views/pos_order_views.xml',
         'views/res_config_settings_views.xml',
+        'views/product_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [
