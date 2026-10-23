@@ -81,7 +81,7 @@
 
                 <div class="bill-divider"/>
 
-                <!-- Totals & 5% Taxes Breakdown (SGST 2.5% + CGST 2.5%) -->
+                <!-- Totals & 5% Tax -->
                 <div class="totals-section">
                     <!-- Sub Total -->
                     <div class="d-flex justify-content-between total-row">
@@ -95,16 +95,10 @@
                         <span class="font-monospace"><t t-esc="formatAmount(discountAmount)"/></span>
                     </div>
 
-                    <!-- SGST 2.5% -->
-                    <div t-if="sgstAmount > 0" class="d-flex justify-content-between total-row">
-                        <span>SGST 2.5%</span>
-                        <span class="font-monospace" t-esc="formatAmount(sgstAmount)"/>
-                    </div>
-
-                    <!-- CGST 2.5% -->
-                    <div t-if="cgstAmount > 0" class="d-flex justify-content-between total-row">
-                        <span>CGST 2.5%</span>
-                        <span class="font-monospace" t-esc="formatAmount(cgstAmount)"/>
+                    <!-- Tax 5% -->
+                    <div t-if="taxAmount > 0" class="d-flex justify-content-between total-row">
+                        <span>Tax 5%</span>
+                        <span class="font-monospace" t-esc="formatAmount(taxAmount)"/>
                     </div>
 
                     <!-- Round Off (if rounding applied) -->
