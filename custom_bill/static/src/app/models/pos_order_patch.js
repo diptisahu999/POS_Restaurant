@@ -3,6 +3,7 @@
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { patch } from "@web/core/utils/patch";
+import { _t } from "@web/core/l10n/translation";
 
 patch(PosOrder.prototype, {
     setup(vals) {
@@ -27,6 +28,17 @@ patch(PosOrderline.prototype, {
         this.discount_reason = vals.discount_reason || "";
     },
 
+    setQuantity(quantity, keep_price) {
+        const quant = typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
+        if (!this.order_id?.preset_id?.is_return && !this.refunded_orderline_id && (quant < 0 || quantity === "-")) {
+            return {
+                title: _t("Negative quantity not allowed"),
+                body: _t("The quantity of the product cannot be negative."),
+            };
+        }
+        return super.setQuantity(...arguments);
+    },
+
     get isDiscountLine() {
         return (
             Boolean(this.uiState?.isDiscountLine) ||
@@ -42,4 +54,5 @@ patch(PosOrderline.prototype, {
         this.uiState.isDiscountLine = Boolean(val);
     },
 });
+
 

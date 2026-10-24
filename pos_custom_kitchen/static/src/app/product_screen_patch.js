@@ -4,6 +4,9 @@ import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { KitchenRemarksPopup } from "@pos_custom_kitchen/app/kitchen_remarks_popup";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { _t } from "@web/core/l10n/translation";
+import { SWITCHSIGN } from "@point_of_sale/app/components/numpad/numpad";
 
 
 patch(ProductScreen.prototype, {
@@ -183,4 +186,28 @@ patch(ProductScreen.prototype, {
             );
         }
     },
+
+    getNumpadButtons() {
+        const buttons = super.getNumpadButtons();
+        if (this.pos.numpadMode === "quantity") {
+            return buttons.map((b) => {
+                if (b.value === "-" || b.value === "+/-" || (SWITCHSIGN && b.value === SWITCHSIGN.value)) {
+                    return { ...b, disabled: true };
+                }
+                return b;
+            });
+        }
+        return buttons;
+    },
+
+    onNumpadClick(buttonValue) {
+        if ((buttonValue === "-" || buttonValue === "+/-" || (SWITCHSIGN && buttonValue === SWITCHSIGN.value)) && this.pos.numpadMode === "quantity") {
+            return this.dialog.add(AlertDialog, {
+                title: _t("Negative quantity not allowed"),
+                body: _t("The quantity of the product cannot be negative."),
+            });
+        }
+        return super.onNumpadClick(...arguments);
+    },
 });
+

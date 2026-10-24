@@ -6,6 +6,8 @@ import { FloorScreen } from "@pos_restaurant/app/screens/floor_screen/floor_scre
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { _t } from "@web/core/l10n/translation";
 
 patch(OrderDisplay.prototype, {
     get comboSortedLines() {
@@ -51,6 +53,13 @@ patch(PosStore.prototype, {
     },
 
     async addLineToOrder(vals, order, opts = {}, configure = true) {
+        if (!order?.preset_id?.is_return && vals && vals.qty < 0 && !opts.force) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Negative quantity not allowed"),
+                body: _t("The quantity of the product cannot be negative."),
+            });
+            return;
+        }
         if (order && order.bill_printed) {
             order.bill_printed = false;
             if (order.isSynced) {
