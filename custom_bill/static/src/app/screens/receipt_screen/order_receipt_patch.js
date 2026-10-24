@@ -143,7 +143,7 @@ patch(OrderReceipt.prototype, {
             : (this.order.lines ? [...this.order.lines] : []);
 
         return lines
-            .filter(line => !line.isDiscountLine && (typeof line.get_product === "function" ? line.get_product() : line.product_id))
+            .filter(line => !line.isDiscountLine && !line.uiState?.isDiscountLine && (typeof line.get_unit_price === "function" ? line.get_unit_price() >= 0 : (line.price_unit >= 0)) && (typeof line.get_product === "function" ? line.get_product() : line.product_id))
             .map(line => {
                 const prod = (typeof line.get_product === "function" ? line.get_product() : line.product_id) || {};
                 const name = (typeof line.get_full_product_name === "function" ? line.get_full_product_name() : line.full_product_name) || prod.display_name || prod.name || "Item";
@@ -182,16 +182,26 @@ patch(OrderReceipt.prototype, {
         return this.receiptLines.reduce((acc, l) => acc + (l.unit_price * l.qty), 0);
     },
 
+    get allOrderlines() {
+        if (typeof this.order.getOrderlines === "function") {
+            return this.order.getOrderlines();
+        }
+        if (typeof this.order.get_orderlines === "function") {
+            return this.order.get_orderlines();
+        }
+        return this.order.lines ? [...this.order.lines] : [];
+    },
+
     get discountAmount() {
         let disc = 0;
-        const lines = typeof this.order.get_orderlines === "function" ? this.order.get_orderlines() : (this.order.lines || []);
+        const lines = this.allOrderlines;
         for (const l of lines) {
             const qty = typeof l.get_quantity === "function" ? l.get_quantity() : (l.qty || 1);
             const unitPrice = typeof l.get_unit_price === "function" ? l.get_unit_price() : (l.price_unit || 0);
             if (l.discount && l.discount > 0) {
                 disc += (unitPrice * qty * l.discount) / 100;
             }
-            if (l.isDiscountLine || (unitPrice < 0)) {
+            if (l.isDiscountLine || l.uiState?.isDiscountLine || (unitPrice < 0)) {
                 disc += Math.abs(unitPrice * qty);
             }
         }
@@ -201,13 +211,78 @@ patch(OrderReceipt.prototype, {
         return Math.round(disc * 100) / 100;
     },
 
-    get discountLabelFormatted() {
-        const lines = typeof this.order.get_orderlines === "function" ? this.order.get_orderlines() : (this.order.lines || []);
-        const discLine = lines.find(l => l.discount > 0);
-        if (discLine && discLine.discount) {
-            return `Discount(FD-${discLine.discount}%)`;
+    get discountReason() {
+        if (this.order.uiState?.discount_reason || this.order.discount_reason) {
+            return this.order.uiState?.discount_reason || this.order.discount_reason;
         }
-        return "Discount";
+        const lines = this.allOrderlines;
+        const globalDiscLine = lines.find(l => 
+            l.isDiscountLine || 
+            l.uiState?.isDiscountLine || 
+            (typeof l.get_unit_price === "function" ? l.get_unit_price() < 0 : (l.price_unit < 0))
+        );
+        if (globalDiscLine) {
+            if (globalDiscLine.uiState?.discount_reason || globalDiscLine.discount_reason) {
+                return globalDiscLine.uiState?.discount_reason || globalDiscLine.discount_reason;
+            }
+            const note = globalDiscLine.customer_note || globalDiscLine.note || "";
+            const m = note.match(/-\s*(.+)$/);
+            if (m) {
+                return m[1].trim();
+            }
+        }
+        return "";
+    },
+
+    get discountLabelFormatted() {
+        const lines = this.allOrderlines;
+        let label = "Discount";
+        const reason = this.discountReason;
+        
+        // 1. Stored discount percentage on order
+        const storedPct = this.order.uiState?.discount_percentage || this.order.discount_percentage;
+        if (storedPct) {
+            const p = Number(storedPct);
+            const pct = p % 1 === 0 ? p.toFixed(0) : p.toFixed(2);
+            label = `Discount ${pct}%`;
+        } else {
+            // 2. Line-level discount percentage
+            const discLine = lines.find(l => l.discount > 0);
+            if (discLine && discLine.discount) {
+                const pct = Number(discLine.discount) % 1 === 0 ? Number(discLine.discount).toFixed(0) : Number(discLine.discount).toFixed(2);
+                label = `Discount ${pct}%`;
+            } else {
+                // 3. Global discount line note
+                const globalDiscLine = lines.find(l => l.isDiscountLine || l.uiState?.isDiscountLine || (typeof l.get_unit_price === "function" ? l.get_unit_price() < 0 : (l.price_unit < 0)));
+                let pctFound = false;
+                if (globalDiscLine) {
+                    const note = globalDiscLine.customer_note || globalDiscLine.note || "";
+                    const pctMatch = note.match(/(\d+(?:\.\d+)?)\s*%/);
+                    if (pctMatch) {
+                        label = `Discount ${pctMatch[1]}%`;
+                        pctFound = true;
+                    } else if (/fixed/i.test(note)) {
+                        label = `Discount ${this.formatAmount(this.discountAmount)}`;
+                        pctFound = true;
+                    }
+                }
+                
+                // 4. Fallback: Compute percentage directly from discountAmount vs subtotalAmount
+                if (!pctFound && this.subtotalAmount > 0 && this.discountAmount > 0) {
+                    const calculatedPct = (this.discountAmount / this.subtotalAmount) * 100;
+                    if (Math.abs(calculatedPct - Math.round(calculatedPct)) < 0.01) {
+                        label = `Discount ${Math.round(calculatedPct)}%`;
+                    } else {
+                        label = `Discount ${this.formatAmount(this.discountAmount)}`;
+                    }
+                }
+            }
+        }
+
+        if (reason) {
+            return `${label} (${reason})`;
+        }
+        return label;
     },
 
     get taxAmount() {
@@ -263,11 +338,26 @@ patch(OrderReceipt.prototype, {
         if (!paymentLines.length) {
             return [];
         }
+        let remainingToCover = this.payableAmount;
         return paymentLines.map(p => {
             const rawName = p.payment_method_id?.name || p.name || "Payment";
             const isNc = rawName.toLowerCase().includes("no charge") || rawName.toLowerCase().includes("(nc)") || rawName.toLowerCase() === "nc" || !!p.nc_reason;
+            const isCash = Boolean(p.payment_method_id?.is_cash_count || rawName.toLowerCase().includes("cash"));
             const reason = p.nc_reason || (isNc ? this.ncReason : "");
-            const amount = isNc ? 0 : (typeof p.getAmount === "function" ? p.getAmount() : (p.amount || 0));
+            
+            let amount = 0;
+            if (isNc) {
+                amount = 0;
+            } else {
+                const lineAmount = typeof p.getAmount === "function" ? p.getAmount() : (p.amount || 0);
+                if (isCash) {
+                    amount = lineAmount;
+                } else {
+                    // For non-cash payment methods (UPI, Card), amount on bill should not exceed payable amount
+                    amount = Math.min(lineAmount, remainingToCover);
+                    remainingToCover = Math.max(0, remainingToCover - amount);
+                }
+            }
 
             return {
                 name: rawName,
@@ -280,6 +370,11 @@ patch(OrderReceipt.prototype, {
 
     get changeAmount() {
         if (this.isNcOrder) {
+            return 0;
+        }
+        // Change is only applicable if cash was used and paid cash exceeds payableAmount
+        const cashPayment = (this.order.payment_ids || []).find(p => !p.is_change && (p.payment_method_id?.is_cash_count || (p.payment_method_id?.name || p.name || "").toLowerCase().includes("cash")));
+        if (!cashPayment) {
             return 0;
         }
         return typeof this.order.get_change === "function" ? this.order.get_change() : (this.order.change || 0);

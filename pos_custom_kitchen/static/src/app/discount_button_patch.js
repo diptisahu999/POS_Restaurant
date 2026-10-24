@@ -12,7 +12,34 @@ patch(ControlButtons.prototype, {
             return;
         }
         
-        const subtotal = typeof order.get_total_without_tax === "function" ? order.get_total_without_tax() : (order.priceExcl || 0);
+        const discountConfig = this.pos.config.discount_product_id;
+        const discountProductId = discountConfig ? (discountConfig.id || discountConfig[0] || discountConfig) : false;
+        if (!discountProductId) {
+            this.env.services.notification.add("Discount product is not configured in POS settings.", { type: "danger" });
+            return;
+        }
+
+        const discountProduct = this.pos.models["product.product"].get(discountProductId);
+        if (!discountProduct) {
+            this.env.services.notification.add("Discount product not found in local database.", { type: "danger" });
+            return;
+        }
+
+        let lines = typeof order.getOrderlines === "function" ? order.getOrderlines() : (typeof order.get_orderlines === "function" ? order.get_orderlines() : [...(order.lines || [])]);
+
+        // Calculate gross subtotal of food/beverage items (excluding any discount lines or negative lines)
+        const productLines = lines.filter(l => 
+            !l.isDiscountLine && 
+            !l.uiState?.isDiscountLine &&
+            (typeof l.get_unit_price === "function" ? l.get_unit_price() >= 0 : (l.price_unit >= 0)) &&
+            (!discountProductId || (l.product_id?.id !== discountProductId && l.product?.id !== discountProductId))
+        );
+
+        const subtotal = productLines.reduce((acc, l) => {
+            const qty = typeof l.get_quantity === "function" ? l.get_quantity() : (l.qty || 1);
+            const unitPrice = typeof l.get_unit_price === "function" ? l.get_unit_price() : (l.price_unit || 0);
+            return acc + (unitPrice * qty);
+        }, 0);
 
         // Open our custom popup
         const payload = await makeAwaitable(this.dialog, GlobalDiscountPopup, {
@@ -26,29 +53,9 @@ patch(ControlButtons.prototype, {
 
         const discountType = payload.type; // "percentage" or "fixed"
         const value = discountType === "percentage" ? Math.max(0, Math.min(100, payload.value)) : Math.max(0, payload.value);
-        
-        // Apply discount using the Global Discount Product to avoid reducing tax
-        const discountConfig = this.pos.config.discount_product_id;
-        const discountProductId = discountConfig ? (discountConfig.id || discountConfig[0] || discountConfig) : false;
-        if (!discountProductId) {
-            this.env.services.notification.add("Discount product is not configured in POS settings.", { type: "danger" });
-            return;
-        }
 
-        const discountProduct = this.pos.models["product.product"].get(discountProductId);
-        if (!discountProduct) {
-            this.env.services.notification.add("Discount product not found in local database.", { type: "danger" });
-            return;
-        }
-        
-        let lines = [];
-        if (typeof order.getOrderlines === "function") {
-            lines = order.getOrderlines();
-        } else if (typeof order.get_orderlines === "function") {
-            lines = order.get_orderlines();
-        } else if (order.lines) {
-            lines = [...order.lines];
-        }
+        // Re-fetch current orderlines
+        lines = typeof order.getOrderlines === "function" ? order.getOrderlines() : (typeof order.get_orderlines === "function" ? order.get_orderlines() : [...(order.lines || [])]);
 
         // First, reset all line discounts to 0 to clear the previous method
         for (const line of lines) {
@@ -61,9 +68,10 @@ patch(ControlButtons.prototype, {
 
         // Remove any existing Global Discount lines
         const existingDiscounts = lines.filter(l => 
-            (l.product && l.product.id === discountProductId) || 
-            (l.product_id && l.product_id.id === discountProductId) ||
-            l.isDiscountLine
+            (discountProductId && ((l.product && l.product.id === discountProductId) || (l.product_id && l.product_id.id === discountProductId))) || 
+            l.isDiscountLine ||
+            l.uiState?.isDiscountLine ||
+            (typeof l.get_unit_price === "function" ? l.get_unit_price() < 0 : (l.price_unit < 0))
         );
         for (const line of existingDiscounts) {
             if (typeof order.removeOrderline === "function") {
@@ -77,7 +85,7 @@ patch(ControlButtons.prototype, {
         if (value > 0) {
             let discountAmt = 0;
             if (discountType === "percentage") {
-                discountAmt = - (subtotal * value / 100.0);
+                discountAmt = - Math.round((subtotal * value / 100.0) * 100) / 100;
             } else {
                 discountAmt = - Math.min(subtotal, value); // Cannot discount more than subtotal
             }
@@ -93,11 +101,54 @@ patch(ControlButtons.prototype, {
 
             // Re-fetch lines to find the newly added discount line
             const newLines = typeof order.getOrderlines === "function" ? order.getOrderlines() : (typeof order.get_orderlines === "function" ? order.get_orderlines() : [...order.lines]);
-            const newDiscountLine = newLines.find(l => l.product && l.product.id === discountProductId);
+            const newDiscountLine = newLines.find(l => 
+                (l.product_id && l.product_id.id === discountProductId) ||
+                (l.product && l.product.id === discountProductId) ||
+                l.isDiscountLine ||
+                (l.price_unit < 0)
+            );
             
+            if (payload.reason) {
+                if (order.uiState) {
+                    order.uiState.discount_reason = payload.reason;
+                }
+                try {
+                    order.discount_reason = payload.reason;
+                } catch (e) {
+                    // ignore
+                }
+            }
+            if (payload.value && discountType === "percentage") {
+                if (order.uiState) {
+                    order.uiState.discount_percentage = payload.value;
+                }
+                try {
+                    order.discount_percentage = payload.value;
+                } catch (e) {
+                    // ignore
+                }
+            }
+
             if (newDiscountLine) {
                 // Ensure the line is marked correctly for the UI
-                newDiscountLine.isDiscountLine = true;
+                if (newDiscountLine.uiState) {
+                    newDiscountLine.uiState.isDiscountLine = true;
+                    if (payload.reason) {
+                        newDiscountLine.uiState.discount_reason = payload.reason;
+                    }
+                }
+                try {
+                    newDiscountLine.isDiscountLine = true;
+                } catch (e) {
+                    // ignore
+                }
+                if (payload.reason) {
+                    try {
+                        newDiscountLine.discount_reason = payload.reason;
+                    } catch (e) {
+                        // ignore
+                    }
+                }
                 
                 // Set note
                 if (payload.reason) {
@@ -109,7 +160,22 @@ patch(ControlButtons.prototype, {
                     }
                     if (typeof newDiscountLine.setCustomerNote === "function") newDiscountLine.setCustomerNote(note);
                     else if (typeof newDiscountLine.set_customer_note === "function") newDiscountLine.set_customer_note(note);
-                    else newDiscountLine.customer_note = note;
+                    else {
+                        try {
+                            newDiscountLine.customer_note = note;
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                }
+            }
+
+            // If order already has a single non-cash payment line (like UPI or Card), sync its amount to new total
+            if (order.payment_ids && order.payment_ids.length === 1) {
+                const p = order.payment_ids[0];
+                const isCash = p.payment_method_id?.is_cash_count;
+                if (!isCash && order.totalDue > 0) {
+                    p.setAmount(order.totalDue);
                 }
             }
         }
