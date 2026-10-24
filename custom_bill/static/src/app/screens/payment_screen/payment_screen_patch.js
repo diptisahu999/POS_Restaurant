@@ -7,6 +7,23 @@ import { TextInputPopup } from "@point_of_sale/app/components/popups/text_input_
 import { _t } from "@web/core/l10n/translation";
 
 patch(PaymentScreen.prototype, {
+    setup() {
+        super.setup(...arguments);
+        this.syncElectronicPaymentLines();
+    },
+
+    syncElectronicPaymentLines() {
+        const order = this.currentOrder;
+        if (!order || !order.payment_ids || order.payment_ids.length !== 1) {
+            return;
+        }
+        const p = order.payment_ids[0];
+        const isCash = p.payment_method_id?.is_cash_count;
+        if (!isCash && order.totalDue > 0 && p.amount !== order.totalDue) {
+            p.setAmount(order.totalDue);
+        }
+    },
+
     async addNewPaymentLine(paymentMethod) {
         const name = (paymentMethod?.name || "").toLowerCase().trim();
         const isNcMethod = name.includes("no charge") || name.includes("(nc)") || name === "nc" || paymentMethod?.id === 6;

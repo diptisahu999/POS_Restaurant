@@ -92,7 +92,7 @@
                     <!-- Discount (Visible ONLY when discount is applied) -->
                     <div t-if="discountAmount > 0" class="d-flex justify-content-between total-row">
                         <span><t t-esc="discountLabelFormatted"/></span>
-                        <span class="font-monospace"><t t-esc="formatAmount(discountAmount)"/></span>
+                        <span class="font-monospace flex-shrink-0 ms-2">-<t t-esc="formatAmount(discountAmount)"/></span>
                     </div>
 
                     <!-- Tax 5% -->
