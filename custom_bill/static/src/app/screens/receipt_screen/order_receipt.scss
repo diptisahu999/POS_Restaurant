@@ -183,6 +183,21 @@
         }
     }
 
+    /* Payments Section */
+    .payments-section {
+        font-size: 11.5px;
+        padding: 1px 0;
+
+        .payment-row {
+            padding: 1.5px 0;
+            line-height: 1.3;
+        }
+
+        .col-payment-name {
+            font-weight: 600;
+        }
+    }
+
     /* Amount in Words */
     .amount-in-words-section {
         font-size: 11px;
