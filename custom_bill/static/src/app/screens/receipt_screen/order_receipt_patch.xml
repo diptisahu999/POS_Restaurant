@@ -114,6 +114,23 @@
                     </div>
                 </div>
 
+                <!-- Payment Methods Section -->
+                <div t-if="paymentMethodsFormatted.length" class="payments-section">
+                    <t t-foreach="paymentMethodsFormatted" t-as="pm" t-key="pm_index">
+                        <div class="d-flex justify-content-between payment-row">
+                            <span class="col-payment-name text-uppercase">
+                                <t t-esc="pm.name"/><t t-if="pm.reason"> (<t t-esc="pm.reason"/>)</t>
+                            </span>
+                            <span class="font-monospace" t-esc="formatAmount(pm.amount)"/>
+                        </div>
+                    </t>
+                    <div t-if="changeAmount > 0" class="d-flex justify-content-between payment-row">
+                        <span class="col-payment-name text-uppercase">Change</span>
+                        <span class="font-monospace" t-esc="formatAmount(changeAmount)"/>
+                    </div>
+                    <div class="bill-divider"/>
+                </div>
+
                 <!-- Amount In Words -->
                 <div class="amount-in-words-section">
                     <div>Amount In Words : <span class="fw-bold"><t t-esc="amountInWordsFormatted"/></span></div>

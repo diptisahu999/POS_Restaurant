@@ -162,6 +162,22 @@ patch(OrderReceipt.prototype, {
             });
     },
 
+    get ncPaymentLine() {
+        const lines = (this.order.payment_ids || []).filter(p => !p.is_change);
+        return lines.find(p => {
+            const name = (p.payment_method_id?.name || p.name || "").toLowerCase().trim();
+            return name.includes("no charge") || name.includes("(nc)") || name === "nc" || !!p.nc_reason;
+        });
+    },
+
+    get isNcOrder() {
+        return Boolean(this.ncPaymentLine || this.order.nc_reason);
+    },
+
+    get ncReason() {
+        return this.ncPaymentLine?.nc_reason || this.order.nc_reason || "";
+    },
+
     get subtotalAmount() {
         return this.receiptLines.reduce((acc, l) => acc + (l.unit_price * l.qty), 0);
     },
@@ -195,23 +211,38 @@ patch(OrderReceipt.prototype, {
     },
 
     get taxAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         // 5% Tax calculated on Sub Total (discount does not reduce tax)
         return Math.round(this.subtotalAmount * 0.05 * 100) / 100;
     },
 
     get sgstAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         return Math.round(this.subtotalAmount * 0.025 * 100) / 100;
     },
 
     get cgstAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         return Math.round((this.taxAmount - this.sgstAmount) * 100) / 100;
     },
 
     get grossPayableAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         return Math.max(0, this.subtotalAmount - this.discountAmount) + this.taxAmount;
     },
 
     get roundingAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         if (this.order.appliedRounding !== undefined && this.order.appliedRounding !== null && this.order.appliedRounding !== 0) {
             return this.order.appliedRounding;
         }
@@ -221,7 +252,37 @@ patch(OrderReceipt.prototype, {
     },
 
     get payableAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         return Math.round((this.grossPayableAmount + this.roundingAmount) * 100) / 100;
+    },
+
+    get paymentMethodsFormatted() {
+        const paymentLines = (this.order.payment_ids || []).filter(p => !p.is_change);
+        if (!paymentLines.length) {
+            return [];
+        }
+        return paymentLines.map(p => {
+            const rawName = p.payment_method_id?.name || p.name || "Payment";
+            const isNc = rawName.toLowerCase().includes("no charge") || rawName.toLowerCase().includes("(nc)") || rawName.toLowerCase() === "nc" || !!p.nc_reason;
+            const reason = p.nc_reason || (isNc ? this.ncReason : "");
+            const amount = isNc ? 0 : (typeof p.getAmount === "function" ? p.getAmount() : (p.amount || 0));
+
+            return {
+                name: rawName,
+                reason: reason,
+                amount: amount,
+                isNc: isNc,
+            };
+        });
+    },
+
+    get changeAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
+        return typeof this.order.get_change === "function" ? this.order.get_change() : (this.order.change || 0);
     },
 
     get amountInWordsFormatted() {
