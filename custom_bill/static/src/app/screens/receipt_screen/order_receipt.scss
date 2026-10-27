@@ -3,14 +3,158 @@
    80mm Thermal Receipt Print & Authentic Layout Styles
    ========================================================================= */
 
-.pos-receipt-container {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    padding: 10px 0 !important;
+/* =========================================================================
+   RECEIPT SCREEN LAYOUT - PROPORTIONED SIDEBAR & SCROLLABLE PREVIEW
+   ========================================================================= */
+
+.receipt-screen {
+    .default-view {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+
+    /* Left pane (Actions, Payment Successful, Print, Email, New Order) */
+    .actions {
+        width: 380px !important;
+        min-width: 320px !important;
+        max-width: 440px !important;
+        flex: 0 0 380px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+        overflow-y: auto !important;
+        padding: 0 !important;
+
+        .o_payment_successful {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 20px 20px !important;
+            box-sizing: border-box !important;
+
+            /* The green Payment Successful card */
+            .border-success {
+                padding: 16px 14px !important;
+                margin-bottom: 16px !important;
+                background-color: #f0fdf4 !important;
+                border: 1.5px solid #86efac !important;
+                border-radius: 12px !important;
+                box-shadow: 0 1px 3px rgba(34, 197, 94, 0.1) !important;
+
+                .fa-check-circle {
+                    color: #16a34a !important;
+                    margin-bottom: 6px !important;
+                }
+
+                span.fw-bolder {
+                    font-size: 1.25rem !important;
+                    color: #15803d !important;
+                    text-align: center !important;
+                    margin-bottom: 4px !important;
+                }
+
+                /* Amount & Edit Payment Row */
+                .fs-4 {
+                    font-size: 1.15rem !important;
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    gap: 8px !important;
+                    color: #166534 !important;
+                    margin-top: 4px !important;
+
+                    .edit-order-payment {
+                        font-size: 0.8rem !important;
+                        padding: 4px 10px !important;
+                        font-weight: 600 !important;
+                        background-color: #22c55e !important;
+                        color: #ffffff !important;
+                        border-radius: 6px !important;
+                        white-space: nowrap !important;
+                        cursor: pointer !important;
+                        transition: background-color 0.15s ease !important;
+
+                        &:hover {
+                            background-color: #16a34a !important;
+                        }
+                    }
+                }
+            }
+
+            .receipt-options {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+
+                .button.print {
+                    border-radius: 8px !important;
+                    font-weight: 600 !important;
+                    font-size: 0.95rem !important;
+                    padding: 10px 16px !important;
+                }
+
+                .send-receipt-email-input {
+                    font-size: 0.9rem !important;
+                    border-radius: 8px 0 0 8px !important;
+                }
+            }
+        }
+
+        .validation-buttons {
+            padding: 14px 20px !important;
+            background-color: #ffffff !important;
+            border-top: 1px solid #f1f5f9 !important;
+
+            button.next.validation {
+                border-radius: 8px !important;
+                font-weight: 700 !important;
+                font-size: 1.05rem !important;
+                padding: 12px !important;
+                height: 48px !important;
+            }
+        }
+    }
+
+    /* Right pane (Receipt ticket preview) */
+    .pos-receipt-container {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        background-color: #f8fafc !important;
+        overflow-y: auto !important;
+        padding: 20px 10px !important;
+
+        > div {
+            width: auto !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+        }
+    }
+}
+
+@media (max-width: 991px) {
+    .receipt-screen {
+        .default-view {
+            flex-direction: column !important;
+        }
+        .actions {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: 0 0 auto !important;
+        }
+    }
 }
 
 .custom-thermal-bill {
@@ -146,6 +290,12 @@
         text-align: center;
         flex-shrink: 0;
         font-size: 11.5px;
+
+        &.col-qty-nc {
+            width: 48px;
+            text-align: right;
+            padding-right: 2px;
+        }
     }
 
     .col-rate {

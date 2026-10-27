@@ -2,6 +2,7 @@
 
 import { OrderReceipt } from "@point_of_sale/app/screens/receipt_screen/receipt/order_receipt";
 import { ReceiptHeader } from "@point_of_sale/app/screens/receipt_screen/receipt/receipt_header/receipt_header";
+import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
 import { patch } from "@web/core/utils/patch";
 
 // Helper to convert number to Indian Currency Words
@@ -163,7 +164,11 @@ patch(OrderReceipt.prototype, {
     },
 
     get ncPaymentLine() {
-        const lines = (this.order.payment_ids || []).filter(p => !p.is_change);
+        const lines = (
+            this.order.payment_ids ||
+            this.order.paymentlines ||
+            (typeof this.order.get_paymentlines === "function" ? this.order.get_paymentlines() : [])
+        ).filter(p => !p.is_change);
         return lines.find(p => {
             const name = (p.payment_method_id?.name || p.name || "").toLowerCase().trim();
             return name.includes("no charge") || name.includes("(nc)") || name === "nc" || !!p.nc_reason;
@@ -179,6 +184,9 @@ patch(OrderReceipt.prototype, {
     },
 
     get subtotalAmount() {
+        if (this.isNcOrder) {
+            return 0;
+        }
         return this.receiptLines.reduce((acc, l) => acc + (l.unit_price * l.qty), 0);
     },
 
@@ -334,7 +342,11 @@ patch(OrderReceipt.prototype, {
     },
 
     get paymentMethodsFormatted() {
-        const paymentLines = (this.order.payment_ids || []).filter(p => !p.is_change);
+        const paymentLines = (
+            this.order.payment_ids ||
+            this.order.paymentlines ||
+            (typeof this.order.get_paymentlines === "function" ? this.order.get_paymentlines() : [])
+        ).filter(p => !p.is_change);
         if (!paymentLines.length) {
             return [];
         }
@@ -393,5 +405,33 @@ patch(OrderReceipt.prototype, {
             return "0.00";
         }
         return Number(val).toFixed(2);
+    },
+});
+
+patch(ReceiptScreen.prototype, {
+    get isNcOrder() {
+        const order = this.currentOrder;
+        if (!order) {
+            return false;
+        }
+        if (order.nc_reason) {
+            return true;
+        }
+        const paymentLines = (
+            order.payment_ids ||
+            order.paymentlines ||
+            (typeof order.get_paymentlines === "function" ? order.get_paymentlines() : [])
+        ).filter(p => !p.is_change);
+        return Boolean(paymentLines.find(p => {
+            const name = (p.payment_method_id?.name || p.name || "").toLowerCase().trim();
+            return name.includes("no charge") || name.includes("(nc)") || name === "nc" || !!p.nc_reason;
+        }));
+    },
+
+    get orderAmountPlusTip() {
+        if (this.isNcOrder) {
+            return this.env.utils.formatCurrency(0);
+        }
+        return super.orderAmountPlusTip;
     },
 });

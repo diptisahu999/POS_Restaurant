@@ -58,9 +58,9 @@
                 <!-- Items Table Header -->
                 <div class="items-header d-flex justify-content-between fw-bold">
                     <span class="col-item-name">Item Name</span>
-                    <span class="col-qty text-center">Qty</span>
-                    <span class="col-rate text-end">Rate</span>
-                    <span class="col-amount text-end">Amount</span>
+                    <span t-attf-class="col-qty {{ isNcOrder ? 'col-qty-nc text-end' : 'text-center' }}">Qty</span>
+                    <span t-if="!isNcOrder" class="col-rate text-end">Rate</span>
+                    <span t-if="!isNcOrder" class="col-amount text-end">Amount</span>
                 </div>
 
                 <div class="bill-divider"/>
@@ -71,9 +71,9 @@
                         <div class="item-line">
                             <div class="d-flex justify-content-between align-items-start">
                                 <span class="col-item-name text-uppercase fw-semibold"><t t-esc="line.product_name"/></span>
-                                <span class="col-qty text-center"><t t-esc="line.qty"/></span>
-                                <span class="col-rate text-end font-monospace"><t t-esc="formatAmount(line.unit_price)"/></span>
-                                <span class="col-amount text-end font-monospace"><t t-esc="formatAmount(line.price_subtotal)"/></span>
+                                <span t-attf-class="col-qty {{ isNcOrder ? 'col-qty-nc text-end' : 'text-center' }}"><t t-esc="line.qty"/></span>
+                                <span t-if="!isNcOrder" class="col-rate text-end font-monospace"><t t-esc="formatAmount(line.unit_price)"/></span>
+                                <span t-if="!isNcOrder" class="col-amount text-end font-monospace"><t t-esc="formatAmount(line.price_subtotal)"/></span>
                             </div>
                         </div>
                     </t>
@@ -84,7 +84,7 @@
                 <!-- Totals & 5% Tax -->
                 <div class="totals-section">
                     <!-- Sub Total -->
-                    <div class="d-flex justify-content-between total-row">
+                    <div t-if="!isNcOrder" class="d-flex justify-content-between total-row">
                         <span>Sub Total</span>
                         <span class="font-monospace" t-esc="formatAmount(subtotalAmount)"/>
                     </div>

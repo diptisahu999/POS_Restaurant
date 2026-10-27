@@ -19,9 +19,3 @@ class ProductProduct(models.Model):
         readonly=False,
         string='HSN / SAC Code'
     )
-
-    def _load_pos_data_fields(self, config):
-        fields = super()._load_pos_data_fields(config)
-        if 'hsn_code' not in fields:
-            fields.append('hsn_code')
-        return fields
