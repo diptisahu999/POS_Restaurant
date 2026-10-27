@@ -126,11 +126,15 @@ patch(FloorScreen.prototype, {
     },
 
     getTableBg(table) {
-        return "#ffffff";
+        return this.getTableColor(table);
     },
 
     getTableTextColor(table) {
-        return "#0f172a";
+        const status = this.getTableStatus(table);
+        if (status === "occupied") {
+            return "#ffffff";
+        }
+        return "#000000";
     },
 
     async onClickTable(table, ev) {
