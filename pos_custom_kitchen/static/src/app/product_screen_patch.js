@@ -125,9 +125,26 @@ patch(ProductScreen.prototype, {
             return;
         }
 
-        // Open the remarks wizard — user enters per-item notes
+        // Fetch existing rounds from backend or local cache
+        const identifier = order.uuid || order.server_id || order.id || order.name || order.pos_reference;
+        let existingRounds = [];
+        try {
+            const orm = this.env?.services?.orm || this.pos?.orm;
+            if (orm && identifier) {
+                existingRounds = await orm.call("pos.order", "get_order_kitchen_rounds", [identifier]);
+            }
+        } catch (e) {
+            console.warn("Could not fetch kitchen rounds via RPC:", e);
+        }
+        if (!existingRounds || !Array.isArray(existingRounds) || existingRounds.length === 0) {
+            existingRounds = order._kitchen_rounds_local || [];
+        }
+
+        // Open the remarks wizard — user enters per-item notes organized by Order and Reorders
         const payload = await makeAwaitable(this.dialog, KitchenRemarksPopup, {
             orderlines: lines,
+            existingRounds: existingRounds,
+            order: order,
         });
 
         // payload is undefined if user cancelled
@@ -135,10 +152,49 @@ patch(ProductScreen.prototype, {
             return;
         }
 
-        // Apply remarks to each order line
+        const isResend = Boolean(payload.isResend);
+        const targetRoundId = payload.targetRoundId;
+        const notes = payload.notes || payload;
+
+        if (isResend) {
+            this.env.services.notification.add(
+                "Resending order to Kitchen Printers...",
+                { type: "info" }
+            );
+
+            try {
+                const printResult = await this.pos.data.call("pos.order", "action_print_kitchen_order", [order.uuid, targetRoundId]);
+                if (printResult && printResult.success) {
+                    const printerNames = (printResult.printers && printResult.printers.length)
+                        ? printResult.printers.join(", ")
+                        : "Kitchen Printer";
+                    this.env.services.notification.add(
+                        `Resent to ${printerNames}!`,
+                        { type: "success" }
+                    );
+                } else if (printResult && !printResult.success) {
+                    this.env.services.notification.add(
+                        `Printer Warning: ${printResult.message || 'No ticket printed'}`,
+                        { type: "warning" }
+                    );
+                }
+            } catch (e) {
+                console.error("Network kitchen print call failed:", e);
+                this.env.services.notification.add(
+                    "Printer Error: " + (e.message || "Failed to reach printer"),
+                    { type: "danger" }
+                );
+            }
+            return;
+        }
+
+        // Apply remarks to each order line (only for unsent / new items)
         for (const line of lines) {
+            if (line.is_sent_to_kitchen) {
+                continue;
+            }
             const key = String(line.uuid || line.id || line.cid || "");
-            const note = (payload && payload[key]) || "";
+            const note = (notes && notes[key]) !== undefined ? notes[key] : (line.customer_note || "");
             if (typeof line.setCustomerNote === "function") {
                 line.setCustomerNote(note);
             } else if (typeof line.set_customer_note === "function") {
@@ -148,9 +204,71 @@ patch(ProductScreen.prototype, {
             }
         }
 
+        // Mark all current order lines and the order as sent to kitchen (locked from edits)
+        for (const line of lines) {
+            line.is_sent_to_kitchen = true;
+        }
+        order.is_sent_to_kitchen = true;
+
+        // Optimistically record the newly confirmed round into local rounds cache immediately
+        const prevRounds = Array.isArray(order._kitchen_rounds_local) ? [...order._kitchen_rounds_local] : [];
+        const isInitialOrder = prevRounds.length === 0;
+        const pastReorders = prevRounds.filter(r => r.round_type === 'reorder' || r.sequence > 0);
+        const nextSequence = isInitialOrder ? 0 : pastReorders.length + 1;
+        const roundTitle = isInitialOrder ? "Order" : `Reorder ${nextSequence}`;
+        const roundType = isInitialOrder ? "order" : "reorder";
+
+        const sentQtyByProduct = {};
+        for (const r of prevRounds) {
+            for (const rl of (r.lines || [])) {
+                sentQtyByProduct[rl.product_id] = (sentQtyByProduct[rl.product_id] || 0) + (rl.qty || 0);
+            }
+        }
+
+        const deltaRoundLines = [];
+        for (const l of lines) {
+            const pId = l.product_id?.id || l.product_id;
+            const qty = typeof l.get_quantity === "function" ? l.get_quantity() : (l.qty || 0);
+            const prevSent = sentQtyByProduct[pId] || 0;
+            if (qty > prevSent) {
+                const diff = qty - prevSent;
+                sentQtyByProduct[pId] = qty;
+                deltaRoundLines.push({
+                    id: `local_${Date.now()}_${pId}`,
+                    product_id: pId,
+                    product_name: typeof l.get_full_product_name === "function" ? l.get_full_product_name() : (l.full_product_name || l.product_id?.display_name || "Item"),
+                    category_name: l.product_id?.pos_categ_ids?.[0]?.name || "General",
+                    qty: diff,
+                    note: l.customer_note || "",
+                });
+            }
+        }
+
+        if (deltaRoundLines.length > 0) {
+            prevRounds.push({
+                id: `local_${Date.now()}`,
+                sequence: nextSequence,
+                round_type: roundType,
+                title: roundTitle,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                lines: deltaRoundLines,
+            });
+            order._kitchen_rounds_local = prevRounds;
+        }
+
         // Sync to server so kitchen display shows updated notes and quantities
         try {
             await this.pos.syncAllOrders({ orders: [order], force: true });
+            // Cache latest kitchen rounds from database
+            try {
+                const orm = this.env?.services?.orm || this.pos?.orm;
+                if (orm && identifier) {
+                    const serverRounds = await orm.call("pos.order", "get_order_kitchen_rounds", [identifier]);
+                    if (serverRounds && Array.isArray(serverRounds) && serverRounds.length > 0) {
+                        order._kitchen_rounds_local = serverRounds;
+                    }
+                }
+            } catch (err) {}
         } catch (e) {
             console.warn("Kitchen sync failed:", e);
         }
@@ -201,6 +319,13 @@ patch(ProductScreen.prototype, {
     },
 
     onNumpadClick(buttonValue) {
+        const selectedLine = this.currentOrder?.getSelectedOrderline();
+        if (selectedLine && selectedLine.is_sent_to_kitchen) {
+            return this.dialog.add(AlertDialog, {
+                title: _t("Item Locked"),
+                body: _t("This item has already been sent to the kitchen and cannot be modified or deleted. To order more, please select the item from the catalog to add a new reorder."),
+            });
+        }
         if ((buttonValue === "-" || buttonValue === "+/-" || (SWITCHSIGN && buttonValue === SWITCHSIGN.value)) && this.pos.numpadMode === "quantity") {
             return this.dialog.add(AlertDialog, {
                 title: _t("Negative quantity not allowed"),

@@ -27,6 +27,29 @@
                             icon="fa-print"/>
                 </div>
             </xpath>
+
+            <!-- Hide the default category field from the upper group -->
+            <xpath expr="//field[@name='product_categories_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Add full-width Printed Items / Products notebook page -->
+            <xpath expr="//sheet/group" position="after">
+                <notebook>
+                    <page string="Printed Products / Items" name="printed_items">
+                        <field name="product_ids">
+                            <list string="Printed Products / Items">
+                                <field name="display_name" string="Item / Product"/>
+                                <field name="pos_categ_ids" widget="many2many_tags" string="Category" optional="show"/>
+                                <field name="lst_price" string="Sales Price" optional="show"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Categories (Optional Fallback)" name="printed_categories">
+                        <field name="product_categories_ids"/>
+                    </page>
+                </notebook>
+            </xpath>
         </field>
     </record>
 
@@ -41,6 +64,7 @@
                 <field name="network_printer_ip"/>
                 <field name="network_printer_port"/>
                 <field name="order_count"/>
+                <field name="product_ids"/>
                 <field name="product_categories_ids"/>
                 <templates>
                     <t t-name="card">
@@ -56,7 +80,11 @@
                             <div class="text-muted small mb-2" invisible="printer_type != 'network_tcp'">
                                 <strong>IP Address:</strong> <field name="network_printer_ip"/>:<field name="network_printer_port"/>
                             </div>
-                            <div class="mb-2 small flex-grow-1">
+                            <div class="mb-2 small flex-grow-1" invisible="not product_ids">
+                                <strong>Assigned Items:</strong>
+                                <field name="product_ids" widget="many2many_tags"/>
+                            </div>
+                            <div class="mb-2 small flex-grow-1" invisible="product_ids or not product_categories_ids">
                                 <strong>Assigned Categories:</strong>
                                 <field name="product_categories_ids" widget="many2many_tags"/>
                             </div>

@@ -78,6 +78,13 @@
     </t>
 
     <t t-name="pos_custom_kitchen.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('text-wrap')]" position="after">
+            <span t-if="line.is_sent_to_kitchen and !vals.isReceipt" 
+                  class="badge bg-secondary text-white ms-1 py-1 px-2 rounded-pill shadow-sm align-self-center" 
+                  style="font-size: 11px; font-weight: 600; letter-spacing: 0.3px;">
+                <i class="fa fa-lock me-1"/>Sent
+            </span>
+        </xpath>
         <xpath expr="//li[hasclass('price-per-unit')][1]" position="attributes">
             <attribute name="t-if">vals.displayPriceUnit and !vals.isReceipt</attribute>
         </xpath>
