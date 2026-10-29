@@ -25,6 +25,15 @@ class PosPrinter(models.Model):
         default=9100,
         help='Port for thermal ESC/POS network printers (default is 9100)'
     )
+    product_ids = fields.Many2many(
+        'product.product',
+        'pos_printer_product_rel',
+        'printer_id',
+        'product_id',
+        string='Printed Products / Items',
+        domain=[('available_in_pos', '=', True)],
+        help='Select the specific products / items that will be printed on this kitchen printer.'
+    )
     ticket_log_ids = fields.One2many(
         'pos.kitchen.printer.log',
         'printer_id',
@@ -64,7 +73,14 @@ class PosPrinter(models.Model):
         if not self.network_printer_ip:
             raise UserError("Please enter the Printer IP Address first!")
 
-        now_dt = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        import pytz
+        tz_name = self.env.context.get('tz') or self.env.user.tz or self.company_id.partner_id.tz or 'Asia/Kolkata'
+        try:
+            user_tz = pytz.timezone(tz_name)
+        except Exception:
+            user_tz = pytz.timezone('Asia/Kolkata')
+        import datetime
+        now_dt = datetime.datetime.now(datetime.timezone.utc).astimezone(user_tz)
         date_str = now_dt.strftime('%d-%m-%Y')
         time_str = now_dt.strftime('%I:%M %p')
         test_text = (

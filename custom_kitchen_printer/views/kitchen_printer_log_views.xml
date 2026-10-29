@@ -33,7 +33,7 @@
                                     <span class="badge rounded-pill text-bg-warning fs-6 px-2 py-1">
                                         <i class="fa fa-cutlery me-1"/>
                                         <t t-if="record.table_number.raw_value">
-                                            Table <field name="table_number"/> <t t-if="record.floor_name.raw_value">(<field name="floor_name"/>)</t>
+                                            Table <field name="table_number"/>
                                         </t>
                                         <t t-else="">
                                             <field name="table_name"/>

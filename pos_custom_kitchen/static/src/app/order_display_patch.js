@@ -4,6 +4,8 @@ import { patch } from "@web/core/utils/patch";
 import { OrderDisplay } from "@point_of_sale/app/components/order_display/order_display";
 import { FloorScreen } from "@pos_restaurant/app/screens/floor_screen/floor_screen";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
+import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
+import { OrderSummary } from "@point_of_sale/app/screens/product_screen/order_summary/order_summary";
 import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
@@ -16,16 +18,96 @@ patch(OrderDisplay.prototype, {
     }
 });
 
+patch(PosOrderline.prototype, {
+    setup(vals) {
+        super.setup(...arguments);
+        this.is_sent_to_kitchen = Boolean(vals.is_sent_to_kitchen);
+    },
+
+    serializeForORM(opts = {}) {
+        const data = super.serializeForORM(opts);
+        data.is_sent_to_kitchen = Boolean(this.is_sent_to_kitchen);
+        return data;
+    },
+
+    canBeMergedWith(orderline) {
+        // Items sent to kitchen cannot be merged into by new reorder items
+        if (this.is_sent_to_kitchen || orderline.is_sent_to_kitchen) {
+            return false;
+        }
+        return super.canBeMergedWith(...arguments);
+    },
+
+    setQuantity(quantity, keep_price) {
+        if (this.is_sent_to_kitchen && this.qty !== undefined && this.qty !== 0) {
+            const quant = typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
+            if (quant !== this.qty) {
+                return false;
+            }
+        }
+        return super.setQuantity(...arguments);
+    },
+
+    setUnitPrice(price) {
+        if (this.is_sent_to_kitchen && this.price_unit !== undefined) {
+            return false;
+        }
+        return super.setUnitPrice(...arguments);
+    },
+
+    setDiscount(discount) {
+        if (this.is_sent_to_kitchen && this.discount !== undefined) {
+            return false;
+        }
+        return super.setDiscount(...arguments);
+    },
+
+    delete() {
+        if (this.is_sent_to_kitchen && this.order_id && !this.order_id.finalized) {
+            return false;
+        }
+        return super.delete(...arguments);
+    },
+});
+
 patch(PosOrder.prototype, {
     setup(vals) {
         super.setup(vals);
         this.bill_printed = Boolean(vals.bill_printed);
+        this.is_sent_to_kitchen = Boolean(vals.is_sent_to_kitchen);
     },
 
     serializeForORM(opts = {}) {
         const data = super.serializeForORM(opts);
         data.bill_printed = Boolean(this.bill_printed);
+        data.is_sent_to_kitchen = Boolean(this.is_sent_to_kitchen);
         return data;
+    },
+
+    removeOrderline(line) {
+        if (line && line.is_sent_to_kitchen) {
+            this.env?.services?.dialog?.add(AlertDialog, {
+                title: _t("Item Locked"),
+                body: _t("This item has already been sent to the kitchen and cannot be deleted."),
+            });
+            return false;
+        }
+        return super.removeOrderline(...arguments);
+    },
+});
+
+patch(OrderSummary.prototype, {
+    _setValue(val) {
+        const selectedLine = this.currentOrder?.getSelectedOrderline();
+        if (selectedLine && selectedLine.is_sent_to_kitchen) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Item Locked"),
+                body: _t("This item has already been sent to the kitchen and cannot be modified or deleted. To order more, please select the item from the catalog to add a new reorder."),
+            });
+            this.numberBuffer.reset();
+            return;
+        }
+        return super._setValue(...arguments);
     },
 });
 

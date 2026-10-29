@@ -51,13 +51,28 @@ class PosOrder(models.Model):
         help='Whether the bill/receipt has been printed for this order'
     )
 
+    is_sent_to_kitchen = fields.Boolean(
+        string='Sent to Kitchen',
+        default=False,
+        help='Whether this order has been sent to the kitchen and its sent lines are locked'
+    )
+
+
     @api.model
     def _process_order(self, order, existing_order):
-        order_id = super()._process_order(order, existing_order)
-        if order.get('bill_printed') is not None:
-            pos_order = self.browse(order_id)
-            if pos_order.exists() and pos_order.bill_printed != order.get('bill_printed'):
-                pos_order.write({'bill_printed': order['bill_printed']})
+        order_dict = dict(order)
+        bill_printed = order_dict.pop('bill_printed', None)
+        is_sent_to_kitchen = order_dict.pop('is_sent_to_kitchen', None)
+        order_id = super()._process_order(order_dict, existing_order)
+        pos_order = self.browse(order_id)
+        if pos_order.exists():
+            vals_to_write = {}
+            if bill_printed is not None and hasattr(pos_order, 'bill_printed') and pos_order.bill_printed != bill_printed:
+                vals_to_write['bill_printed'] = bill_printed
+            if is_sent_to_kitchen is not None and hasattr(pos_order, 'is_sent_to_kitchen') and pos_order.is_sent_to_kitchen != is_sent_to_kitchen:
+                vals_to_write['is_sent_to_kitchen'] = is_sent_to_kitchen
+            if vals_to_write:
+                pos_order.write(vals_to_write)
         return order_id
 
     order_status = fields.Selection([
@@ -305,6 +320,83 @@ class PosOrder(models.Model):
         return orders
 
     @api.model
+    def get_order_kitchen_rounds(self, order_identifier):
+        """
+        Return the kitchen rounds history for a given POS order.
+        Used by the frontend to categorize order lines into 'Order', 'Reorder 1', 'Reorder 2', etc.
+        """
+        if not order_identifier:
+            return []
+
+        domain = ['|', '|',
+            ('uuid', '=', str(order_identifier)),
+            ('pos_reference', '=', str(order_identifier)),
+            ('name', '=', str(order_identifier))
+        ]
+        if str(order_identifier).isdigit():
+            domain = ['|'] + domain + [('id', '=', int(order_identifier))]
+
+        order = self.search(domain, limit=1)
+        if not order or not order.kitchen_round_ids:
+            return []
+
+        rounds = order.kitchen_round_ids.sorted(key=lambda r: (r.sequence, r.id))
+        result = []
+        first_round_id = rounds[0].id if rounds else None
+        reorder_counter = 0
+
+        for r in rounds:
+            is_first = (r.id == first_round_id) or (r.sequence == 0 and r.round_type == 'order')
+            if is_first:
+                title = "Order"
+                round_type = "order"
+            else:
+                reorder_counter += 1
+                title = f"Reorder {reorder_counter}"
+                round_type = "reorder"
+
+            time_str = ""
+            if r.create_date:
+                import pytz
+                tz_name = (
+                    self.env.context.get('tz')
+                    or order.user_id.tz
+                    or self.env.user.tz
+                    or order.company_id.partner_id.tz
+                    or 'Asia/Kolkata'
+                )
+                try:
+                    user_tz = pytz.timezone(tz_name)
+                except Exception:
+                    user_tz = pytz.timezone('Asia/Kolkata')
+                time_str = pytz.utc.localize(r.create_date).astimezone(user_tz).strftime('%I:%M %p')
+
+            lines_data = []
+            for l in r.line_ids:
+                if l.qty <= 0:
+                    continue
+                lines_data.append({
+                    'id': l.id,
+                    'product_id': l.product_id.id,
+                    'product_name': l.product_name or (l.product_id and l.product_id.display_name) or '',
+                    'category_name': l.category_name or '',
+                    'qty': int(l.qty) if l.qty.is_integer() else l.qty,
+                    'note': l.note or '',
+                })
+
+            if lines_data:
+                result.append({
+                    'id': r.id,
+                    'sequence': r.sequence,
+                    'round_type': round_type,
+                    'title': title,
+                    'time': time_str,
+                    'lines': lines_data,
+                })
+
+        return result
+
+    @api.model
     def sync_from_ui(self, orders):
         """
         Odoo 19 POS calls sync_from_ui() when orders are synced.
@@ -376,7 +468,10 @@ class PosOrder(models.Model):
                     })
                     order.write({
                         'kitchen_state': 'pending',
+                        'is_sent_to_kitchen': True,
                     })
+                    for l in order.lines:
+                        l.write({'is_sent_to_kitchen': True})
                     orders_to_increment.append(order_id)
                 continue
 
@@ -406,6 +501,7 @@ class PosOrder(models.Model):
                         'is_reorder': True,
                         'reorder_qty': line.qty,
                         'reorder_note': 'New Item',
+                        'is_sent_to_kitchen': True,
                     })
                 else:
                     old_info = old_lines[line.id]
@@ -424,6 +520,7 @@ class PosOrder(models.Model):
                             'is_reorder': True,
                             'reorder_qty': added_qty,
                             'reorder_note': f"+{int(added_qty) if added_qty.is_integer() else added_qty} Reordered",
+                            'is_sent_to_kitchen': True,
                         })
                     elif line.qty < old_qty:
                         reduced_qty = line.qty - old_qty
@@ -439,7 +536,10 @@ class PosOrder(models.Model):
                             'is_reorder': True,
                             'reorder_qty': line.qty,
                             'reorder_note': f"Qty {int(old_qty) if old_qty.is_integer() else old_qty} ➔ {int(line.qty) if line.qty.is_integer() else line.qty}",
+                            'is_sent_to_kitchen': True,
                         })
+                    else:
+                        line.write({'is_sent_to_kitchen': True})
 
             if new_round_lines:
                 existing_reorders = order.kitchen_round_ids.filtered(lambda r: r.round_type == 'reorder' or r.sequence > 0)
@@ -452,6 +552,7 @@ class PosOrder(models.Model):
                 })
                 order.write({
                     'kitchen_state': 'pending',
+                    'is_sent_to_kitchen': True,
                 })
                 orders_to_increment.append(order_id)
 
@@ -467,3 +568,17 @@ class PosOrderLine(models.Model):
     is_reorder = fields.Boolean(string='Is Reorder', default=False)
     reorder_qty = fields.Float(string='Reordered Quantity', default=0.0)
     reorder_note = fields.Char(string='Reorder Note', default='')
+    is_sent_to_kitchen = fields.Boolean(string='Sent to Kitchen', default=False)
+
+    @api.model
+    def _load_pos_data_fields(self, config):
+        res = super()._load_pos_data_fields(config)
+        return res + ['is_sent_to_kitchen', 'is_reorder', 'reorder_qty', 'reorder_note']
+
+    def unlink(self):
+        for line in self:
+            if line.is_sent_to_kitchen and line.order_id and line.order_id.state not in ('cancel',):
+                from odoo.exceptions import UserError
+                from odoo import _
+                raise UserError(_("Order line '%s' has already been sent to the kitchen and cannot be deleted.") % (line.full_product_name or (line.product_id and line.product_id.display_name) or 'Item'))
+        return super().unlink()

@@ -3,32 +3,108 @@
     <t t-name="pos_custom_kitchen.KitchenRemarksPopup">
         <Dialog title="'Kitchen Order Remarks'">
             <div>
+                <!-- Section Navigation Tabs for Order & Reorders -->
+                <div t-if="this.state.tabs.length &gt; 1"
+                     class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom flex-wrap"
+                     style="background: #f8f9fa; padding: 8px 12px; border-radius: 8px;">
+                    <span class="text-muted small fw-bold me-1 text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">
+                        Sections:
+                    </span>
+                    <t t-foreach="this.state.tabs" t-as="tab" t-key="tab.id">
+                        <button
+                            type="button"
+                            t-attf-class="btn btn-sm rounded-pill d-flex align-items-center gap-1 px-3 py-1 fw-bold transition-all {{ this.state.activeTab === tab.id ? 'btn-danger shadow-sm text-white' : 'btn-outline-secondary bg-white text-dark' }}"
+                            style="font-size: 13px;"
+                            t-on-click="() => this.selectTab(tab.id)">
+                            <span><t t-esc="tab.label"/></span>
+                            <span class="badge rounded-pill ms-1"
+                                  t-attf-style="{{ this.state.activeTab === tab.id ? 'background:#ffffff !important; color:#dc3545 !important;' : 'background:#e9ecef !important; color:#212529 !important;' }} font-size:11px; font-weight:700; padding:2px 7px;">
+                                <t t-esc="tab.count"/>
+                            </span>
+                            <span t-if="tab.isCurrent" class="badge bg-warning text-dark ms-1" style="font-size: 10px; padding: 2px 5px;">
+                                NEW
+                            </span>
+                        </button>
+                    </t>
+                </div>
+
                 <p class="text-muted mb-3" style="font-size:14px;">
-                    Add preparation remarks for each item before sending to kitchen:
+                    <t t-if="this.currentButtonInfo.isResend">
+                        Order already sent to kitchen: Click below to resend ticket to kitchen printers:
+                    </t>
+                    <t t-else="">
+                        Add preparation remarks for each item before sending to kitchen:
+                    </t>
                 </p>
+
+                <!-- Sections list with cards -->
                 <div style="max-height:380px; overflow-y:auto;">
-                    <t t-foreach="props.orderlines" t-as="line" t-key="this._getKey(line)">
-                        <div class="card mb-3 border" style="border-radius:8px;">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge rounded-pill me-2" style="background:#dc3545; font-size:12px; padding:4px 9px;">
-                                        <t t-esc="this.getLineQuantity(line)"/>x
-                                    </span>
-                                    <strong style="font-size:14px;">
-                                        <t t-esc="this.getLineDisplayName(line)"/>
+                    <t t-foreach="this.displayedSections" t-as="section" t-key="section.id">
+                        <div class="mb-3">
+                            <!-- Clean Section Header Banner -->
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 mb-2 rounded bg-light border">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span t-if="section.round_type === 'order' or section.title === 'Order'">📋</span>
+                                    <span t-else="">🔁</span>
+                                    <strong style="font-size: 14px; color: #212529;">
+                                        <t t-esc="section.title"/>
                                     </strong>
                                 </div>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light" style="font-size:13px;">Remarks</span>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="e.g. Make spicy, Less sweet, No onion..."
-                                        t-att-value="this.state.notes[this._getKey(line)] || ''"
-                                        t-on-input="(ev) => this.onNoteInput(this._getKey(line), ev)"
-                                    />
-                                </div>
+                                <span class="badge bg-secondary text-white" style="font-size: 11px; padding: 4px 8px;">
+                                    <t t-esc="section.badgeText"/>
+                                </span>
                             </div>
+
+                            <!-- Section Items -->
+                            <t t-foreach="section.lines" t-as="item" t-key="section.id + '_' + item.key">
+                                <div class="card mb-3 border" style="border-radius:8px;">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge rounded-pill me-2" style="background:#dc3545; color:#ffffff; font-size:12px; padding:4px 9px;">
+                                                    <t t-if="item.isAdditionalQty">+<t t-esc="item.qty"/>x</t>
+                                                    <t t-else=""><t t-esc="item.qty"/>x</t>
+                                                </span>
+                                                <strong style="font-size:14px; color: #212529;">
+                                                    <t t-esc="item.name"/>
+                                                </strong>
+                                            </div>
+                                            <span t-if="!item.isCurrent" class="text-muted small fst-italic" style="font-size: 11px;">
+                                                Previously sent (Locked)
+                                            </span>
+                                            <span t-else="" class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 10px;">
+                                                New
+                                            </span>
+                                        </div>
+
+                                        <!-- EDITABLE FOR NEW ITEMS -->
+                                        <div t-if="item.isCurrent" class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light" style="font-size:13px;">Remarks</span>
+                                            <input
+                                                type="text"
+                                                class="form-control"
+                                                placeholder="e.g. Make spicy, Less sweet, No onion..."
+                                                t-att-value="this.state.notes[item.key] || ''"
+                                                t-on-input="(ev) => this.onNoteInput(item.key, item, ev)"
+                                            />
+                                        </div>
+
+                                        <!-- UNEDITABLE / READONLY FOR ALREADY SENT ITEMS -->
+                                        <div t-else="" class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light text-muted" style="font-size:13px;">Remarks</span>
+                                            <input
+                                                type="text"
+                                                class="form-control bg-light text-muted"
+                                                disabled="disabled"
+                                                readonly="readonly"
+                                                t-att-value="item.note || ''"
+                                                placeholder="No remarks"
+                                                style="cursor: not-allowed;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
                         </div>
                     </t>
                 </div>
@@ -38,7 +114,8 @@
                     Cancel
                 </button>
                 <button class="btn btn-danger px-4 fw-bold" t-on-click="() => this.confirm()">
-                    Confirm &amp; Send to Kitchen
+                    <i t-if="this.currentButtonInfo.isResend" class="fa fa-refresh me-1"/>
+                    <t t-esc="this.currentButtonInfo.label"/>
                 </button>
             </t>
         </Dialog>

@@ -16,6 +16,7 @@
         'security/ir.model.access.csv',
         'views/pos_printer_views.xml',
         'views/pos_category_views.xml',
+        'views/product_views.xml',
         'views/kitchen_printer_log_views.xml',
     ],
     'installable': True,
