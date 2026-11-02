@@ -128,14 +128,99 @@ patch(OrderReceipt.prototype, {
         return `${dd}/${mm}/${yy}   ${hh}:${min}:${ss} ${ampm}`;
     },
 
+    get orderNumberFormatted() {
+        const order = this.order;
+        if (!order) return "";
+        let num = order.tracking_number || (order.sequence_number ? String(order.sequence_number) : "");
+        if (!num && order.pos_reference) {
+            const parts = order.pos_reference.split("-");
+            num = parts[parts.length - 1];
+        }
+        if (!num && order.name) {
+            const m = order.name.match(/(\d+)$/);
+            if (m) num = m[1];
+            else num = order.name;
+        }
+        if (!num && order.id) {
+            num = String(order.id);
+        }
+        if (!num) return "";
+        return String(num).trim().replace(/^#+/, "");
+    },
+
     get kotNumbersFormatted() {
-        if (this.order._printed_round_ids && this.order._printed_round_ids.size) {
-            return Array.from(this.order._printed_round_ids).join(", ");
+        const order = this.order;
+        if (!order) return "";
+
+        const badges = new Set();
+
+        // 1. From backend stored kot_numbers
+        if (order.kot_numbers) {
+            const parts = String(order.kot_numbers).split(",");
+            for (const p of parts) {
+                const trimmed = p.trim();
+                if (trimmed) badges.add(trimmed);
+            }
         }
-        if (this.order.kitchen_round_ids && this.order.kitchen_round_ids.length) {
-            return this.order.kitchen_round_ids.map(r => r.id || r.sequence || r).join(", ");
+
+        // 2. From locally recorded _kot_numbers array
+        if (Array.isArray(order._kot_numbers)) {
+            for (const b of order._kot_numbers) {
+                if (b) badges.add(String(b).trim());
+            }
         }
-        return "";
+
+        // 3. From local kitchen rounds cache (_kitchen_rounds_local)
+        if (Array.isArray(order._kitchen_rounds_local) && order._kitchen_rounds_local.length > 0) {
+            let reorderCounter = 0;
+            const rounds = order._kitchen_rounds_local;
+            for (let i = 0; i < rounds.length; i++) {
+                const r = rounds[i];
+                if (r.is_cancel_round || r.round_type === "cancel") {
+                    continue;
+                }
+                const isFirst = i === 0 || r.sequence === 0 || r.round_type === "order";
+                if (isFirst) {
+                    badges.add("#01");
+                } else {
+                    reorderCounter++;
+                    badges.add(`#${String(reorderCounter + 1).padStart(2, "0")}`);
+                }
+            }
+        }
+
+        // 4. Derive from orderlines that have been sent to the kitchen
+        const lines = typeof order.get_orderlines === "function"
+            ? order.get_orderlines()
+            : (order.lines ? [...order.lines] : []);
+
+        const sentLines = lines.filter(l => l.is_sent_to_kitchen && !l.isDiscountLine);
+        if (sentLines.length > 0) {
+            for (const l of sentLines) {
+                const seq = l.kitchen_round_seq !== undefined
+                    ? l.kitchen_round_seq
+                    : (l.is_reorder ? 1 : 0);
+                badges.add(`#${String(seq + 1).padStart(2, "0")}`);
+            }
+        }
+
+        // 5. Fallback if order has is_sent_to_kitchen flag set
+        if (badges.size === 0 && order.is_sent_to_kitchen) {
+            badges.add("#01");
+        }
+
+        if (badges.size === 0) {
+            return "";
+        }
+
+        // Sort badges numerically (#01, #02, #03...)
+        const sorted = Array.from(badges).sort((a, b) => {
+            const numA = parseInt(a.replace(/\D/g, "") || "0", 10);
+            const numB = parseInt(b.replace(/\D/g, "") || "0", 10);
+            return numA - numB;
+        });
+
+        return sorted.join(", ");
     },
 
     get receiptLines() {

@@ -11,6 +11,7 @@ patch(PosOrder.prototype, {
         this.nc_reason = vals.nc_reason || "";
         this.discount_reason = vals.discount_reason || "";
         this.discount_percentage = vals.discount_percentage || 0;
+        this.kot_numbers = vals.kot_numbers || "";
     },
 
     serializeForORM(opts = {}) {
