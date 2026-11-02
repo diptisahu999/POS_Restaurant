@@ -77,7 +77,10 @@ class PosOrder(models.Model):
     @api.model
     def _load_pos_data_fields(self, config):
         res = super()._load_pos_data_fields(config)
-        if 'kot_numbers' not in res:
+        # In Odoo 19, PosLoadMixin._load_pos_data_fields returns [] by default for pos.order,
+        # which signals records.read([], load=False) to load all fields (including partner_id).
+        # Returning a non-empty list restricts read() to only those fields, dropping partner_id.
+        if res and 'kot_numbers' not in res:
             res.append('kot_numbers')
         return res
 
