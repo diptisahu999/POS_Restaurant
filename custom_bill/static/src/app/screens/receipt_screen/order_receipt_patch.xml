@@ -22,10 +22,11 @@
 
                 <div class="bill-divider"/>
 
-                <!-- Bill No & Date -->
+                <!-- Bill No, Order No & Date -->
                 <div class="bill-meta-section">
-                    <div>
+                    <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-bold">Bill No: <t t-esc="billNumberFormatted"/></span>
+                        <span t-if="orderNumberFormatted" class="fw-bold text-end">Order No: #<t t-esc="orderNumberFormatted"/></span>
                     </div>
                     <div>
                         <span>Bill Date: <t t-esc="billDateFormatted"/></span>
@@ -51,7 +52,7 @@
 
                 <!-- KOT Numbers (if available) -->
                 <div t-if="kotNumbersFormatted" class="kot-section">
-                    <span>Kot : <t t-esc="kotNumbersFormatted"/></span>
+                    <span class="fw-bold">Kot : <t t-esc="kotNumbersFormatted"/></span>
                 </div>
                 <div t-if="kotNumbersFormatted" class="bill-divider"/>
 
