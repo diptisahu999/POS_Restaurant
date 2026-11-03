@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Allowed PoS Outlets on Main Product Form View (Point of Sale tab) -->
+    <record id="product_template_form_view_inherit_pos_outlet" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.pos.outlet</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_categ_ids']" position="after">
+                <field name="pos_config_ids"
+                       widget="many2many_tags"
+                       options="{'no_create': True}"
+                       placeholder="All PoS Outlets (if empty)..."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 2. Allowed PoS Outlets on PoS Normalized Fast Product Form (In-POS Product Creation/Edit) -->
+    <record id="product_template_view_form_normalized_pos_inherit_outlet" model="ir.ui.view">
+        <field name="name">product.template.view.form.normalized.pos.inherit.outlet</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_view_form_normalized_pos"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_categ_ids']" position="after">
+                <field name="pos_config_ids"
+                       widget="many2many_tags"
+                       options="{'no_create': True}"
+                       placeholder="All PoS Outlets (if empty)..."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 3. Allowed PoS Outlets in Products Tree / List View -->
+    <record id="product_template_tree_view_inherit_pos_outlet" model="ir.ui.view">
+        <field name="name">product.template.tree.inherit.pos.outlet</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="pos_categ_ids" position="after">
+                <field name="pos_config_ids" widget="many2many_tags" optional="show" string="Allowed PoS Outlets"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- 4. Filter by Allowed PoS Outlet in Search View -->
+    <record id="product_template_search_view_inherit_pos_outlet" model="ir.ui.view">
+        <field name="name">product.template.search.inherit.pos.outlet</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_search_view_pos"/>
+        <field name="arch" type="xml">
+            <field name="pos_categ_ids" position="after">
+                <field name="pos_config_ids" string="PoS Outlet"/>
+            </field>
+        </field>
+    </record>
+</odoo>
+

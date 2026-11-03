@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+# pyrefly: ignore [missing-import]
 from odoo import api, fields, models
 
 # Clean SVG icons encoded in base64 for payment buttons
