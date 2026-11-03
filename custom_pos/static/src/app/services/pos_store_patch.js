@@ -108,8 +108,77 @@ patch(PosStore.prototype, {
         });
     },
 
+    _isProductAllowedInPos(p, configId) {
+        if (!configId) {
+            return true;
+        }
+        let configIds = p.pos_config_ids;
+        if ((!configIds || (Array.isArray(configIds) && configIds.length === 0)) && p.product_tmpl_id) {
+            configIds = p.product_tmpl_id.pos_config_ids;
+        }
+        if ((!configIds || (Array.isArray(configIds) && configIds.length === 0)) && p.raw?.pos_config_ids) {
+            configIds = p.raw.pos_config_ids;
+        }
+
+        if (!configIds) {
+            return true;
+        }
+
+        let ids = [];
+        if (Array.isArray(configIds)) {
+            ids = configIds.map((item) => (typeof item === "object" && item !== null ? item.id : item));
+        } else if (typeof configIds === "object" && configIds !== null) {
+            if (configIds.id !== undefined) {
+                ids = [configIds.id];
+            } else if (Symbol.iterator in configIds) {
+                ids = [...configIds].map((item) => (typeof item === "object" && item !== null ? item.id : item));
+            }
+        } else if (typeof configIds === "number") {
+            ids = [configIds];
+        }
+
+        if (ids.length === 0) {
+            return true;
+        }
+
+        return ids.includes(configId);
+    },
+
     filterExcludedProducts(products) {
-        const filtered = super.filterExcludedProducts(products);
-        return filtered.filter((p) => !p.is_one_time && p.available_in_pos !== false);
+        const filteredList = [];
+        const excludedProductIds = new Set(this.getExcludedProductIds());
+        const availableCateg = new Set(
+            (this.config.iface_available_categ_ids || []).map((c) => c.id)
+        );
+        const configId = this.config?.id;
+
+        for (const p of products) {
+            if (filteredList.length >= 100) {
+                break;
+            }
+
+            if (p.is_one_time || p.available_in_pos === false) {
+                continue;
+            }
+
+            if (!this._isProductAllowedInPos(p, configId)) {
+                continue;
+            }
+
+            if (excludedProductIds.has(p.id) || !p.canBeDisplayed) {
+                continue;
+            }
+
+            if (
+                availableCateg.size &&
+                !this.config._pos_special_display_products_ids?.includes(p.id) &&
+                !p.pos_categ_ids?.some((c) => availableCateg.has(c.id))
+            ) {
+                continue;
+            }
+
+            filteredList.push(p);
+        }
+        return filteredList;
     },
 });

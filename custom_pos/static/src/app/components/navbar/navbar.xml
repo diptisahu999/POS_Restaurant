@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="custom_pos.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <!-- Always display the center header (even on register/product screen when an order is open) -->
+        <xpath expr="//div[hasclass('pos-centerheader')]" position="attributes">
+            <attribute name="t-if">true</attribute>
+            <attribute name="class">pos-centerheader d-none d-md-flex align-items-center justify-content-center overflow-hidden mx-2</attribute>
+        </xpath>
+
+        <!-- Prevent pos-leftheader from taking 100% width when order is open, preserving center & right header visibility -->
+        <xpath expr="//div[hasclass('pos-leftheader')]" position="attributes">
+            <attribute name="t-att-class">{'d-none': ui.isSmall and state.searchBarOpen}</attribute>
+        </xpath>
+
+        <!-- Replace logo in center header with outlet/restaurant/cafe name -->
+        <xpath expr="//div[hasclass('pos-logo')]" position="replace">
+            <div class="pos-outlet-brand d-flex align-items-center justify-content-center text-truncate">
+                <span class="pos-outlet-name text-uppercase text-truncate" t-esc="pos.config ? pos.config.name : ''"/>
+            </div>
+        </xpath>
+
+        <!-- Create Product button -->
         <xpath expr="//Dropdown" position="before">
             <button class="btn btn-light btn-lg lh-lg d-flex align-items-center gap-1 text-nowrap create-product-navbar-btn"
                     t-if="showCreateProductButton and pos.router.state.current != 'FloorScreen'"
