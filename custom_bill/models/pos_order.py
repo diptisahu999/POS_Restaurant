@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pyrefly: ignore [missing-import]
 from odoo import api, fields, models
 
 class PosOrder(models.Model):
@@ -11,7 +12,7 @@ class PosOrder(models.Model):
     kot_numbers = fields.Char(
         string='KOT Numbers',
         compute='_compute_kot_numbers',
-        store=True,
+        store=False,
         help='KOT sequence numbers for this order (e.g. #01, #02)'
     )
 

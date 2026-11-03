@@ -8,6 +8,7 @@
         - Automatically installs all 8 POS categories (Soups, Salads, Pizza, Pasta, Appetizers, etc.)
         - Automatically loads all 40 restaurant menu products with prices and descriptions
         - Configures default POS settings
+        - Filter products by Allowed PoS Outlets
     """,
     'category': 'Point of Sale',
     'author': 'La Flora',
@@ -16,6 +17,7 @@
         'data/pos_category_data.xml',
         'data/product_data.xml',
         'views/product_template_views.xml',
+        'views/pos_outlet_product_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [
