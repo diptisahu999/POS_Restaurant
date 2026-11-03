@@ -4,3 +4,46 @@ body:has(.floor-screen) .create-product-navbar-btn,
 .pos:has(.table-button.active) .create-product-navbar-btn {
     display: none !important;
 }
+
+/* Ensure any floor logo or default odoo logo is completely hidden */
+.pos-floor-brand-logo {
+    display: none !important;
+}
+.pos-logo {
+    display: none !important;
+}
+
+.pos-topheader {
+    .pos-centerheader {
+        flex: 0 1 auto;
+        max-width: 450px;
+        z-index: 5;
+    }
+}
+
+/* PoS Outlet Brand Name in Top Navbar */
+.pos-outlet-brand {
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    max-width: 100%;
+
+    .pos-outlet-name {
+        font-size: clamp(1.25rem, 1.8vw, 1.85rem);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-family: inherit;
+        background: linear-gradient(135deg, #714B67 0%, #875A7B 40%, #A2467C 75%, #C25975 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: #714B67;
+        filter: drop-shadow(0 2px 4px rgba(113, 75, 103, 0.25));
+        line-height: 1.15;
+        display: inline-block;
+        white-space: nowrap;
+    }
+}

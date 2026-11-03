@@ -22,7 +22,7 @@ class ProductTemplate(models.Model):
         domain = super()._load_pos_data_domain(data, config)
         config_id = config.id if hasattr(config, 'id') else config
         if config_id:
-            domain += ['|', ('pos_config_ids', '=', False), ('pos_config_ids', 'in', [config_id])]
+            domain = AND([domain, ['|', ('pos_config_ids', '=', False), ('pos_config_ids', 'in', [config_id])]])
         return domain
 
     @api.model
@@ -39,6 +39,15 @@ class ProductTemplate(models.Model):
             fields_list.append('pos_config_ids')
         return fields_list
 
+    def _unrelevant_records(self, config):
+        unrelevant_record_ids = super()._unrelevant_records(config)
+        config_id = config.id if hasattr(config, 'id') else config
+        if config_id:
+            for record in self:
+                if record.pos_config_ids and config_id not in record.pos_config_ids.ids:
+                    unrelevant_record_ids.append(record.id)
+        return unrelevant_record_ids
+
 
 class ProductProduct(models.Model):
     _inherit = 'product.product'
@@ -51,9 +60,25 @@ class ProductProduct(models.Model):
     )
 
     @api.model
+    def _load_pos_data_domain(self, data, config):
+        domain = super()._load_pos_data_domain(data, config)
+        config_id = config.id if hasattr(config, 'id') else config
+        if config_id:
+            domain = AND([domain, ['|', ('pos_config_ids', '=', False), ('pos_config_ids', 'in', [config_id])]])
+        return domain
+
+    @api.model
     def _load_pos_data_fields(self, config):
         fields_list = super()._load_pos_data_fields(config)
         if 'pos_config_ids' not in fields_list:
             fields_list.append('pos_config_ids')
         return fields_list
 
+    def _unrelevant_records(self, config):
+        unrelevant_record_ids = super()._unrelevant_records(config)
+        config_id = config.id if hasattr(config, 'id') else config
+        if config_id:
+            for record in self:
+                if record.pos_config_ids and config_id not in record.pos_config_ids.ids:
+                    unrelevant_record_ids.append(record.id)
+        return unrelevant_record_ids
