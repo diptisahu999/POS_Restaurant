@@ -149,7 +149,7 @@ class PosOrder(models.Model):
                     name = line.full_product_name or (line.product_id and line.product_id.display_name) or ''
                     qty = int(line.qty) if line.qty.is_integer() else line.qty
                     note_html = f"""<div style="color: #dc3545; font-size: 13px; font-weight: 600; margin-left: 16px; font-style: italic;">
-                        ↳ Remark: {line.customer_note}
+                        â†³ Remark: {line.customer_note}
                     </div>""" if line.customer_note else ""
                     order_items_html.append(f"""
                         <div style="margin-bottom: 6px;">
@@ -186,19 +186,24 @@ class PosOrder(models.Model):
                     continue
 
                 is_first = (round_rec.id == first_round_id) or (round_rec.sequence == 0 and round_rec.round_type == 'order')
+                is_cancel_round = all(l.qty < 0 for l in round_rec.line_ids if l.qty != 0) and any(l.qty < 0 for l in round_rec.line_ids)
                 if is_first:
                     header_title = "--------- ORDER ---------"
                     header_color = "#495057"
                     bg_color = "transparent"
+                elif is_cancel_round:
+                    reorder_counter += 1
+                    header_title = f"-------- CANCEL {reorder_counter} --------"
+                    header_color = "#6f42c1"
+                    bg_color = "rgba(111, 66, 193, 0.05)"
                 else:
                     reorder_counter += 1
                     header_title = f"-------- REORDER {reorder_counter} --------"
                     header_color = "#dc3545"
                     bg_color = "rgba(220, 53, 69, 0.04)"
-
                 is_ready = bool(round_rec.is_ready)
                 btn_class = "btn-success" if is_ready else "btn-danger"
-                btn_label = "✅ Ready" if is_ready else "🔴 Pending"
+                btn_label = "âœ… Ready" if is_ready else "ðŸ”´ Pending"
 
                 # Group lines by Category
                 lines_by_cat = {}
@@ -231,7 +236,7 @@ class PosOrder(models.Model):
                         note_html = ""
                         if line.note:
                             note_html = f"""<div style="color: #dc3545; font-size: 13px; font-weight: 600; margin-left: 16px; font-style: italic;">
-                                ↳ Remark: {line.note}
+                                â†³ Remark: {line.note}
                             </div>"""
 
                         cat_items_html.append(f"""
@@ -244,7 +249,7 @@ class PosOrder(models.Model):
                     category_blocks.append(f"""
                         <div class="mb-2">
                             <div class="badge text-bg-secondary mb-1" style="font-size: 11px; padding: 3px 8px; text-transform: uppercase;">
-                                📂 {cat_name}
+                                ðŸ“‚ {cat_name}
                             </div>
                             <div class="ps-2">
                                 {''.join(cat_items_html)}
@@ -372,8 +377,12 @@ class PosOrder(models.Model):
                 time_str = pytz.utc.localize(r.create_date).astimezone(user_tz).strftime('%I:%M %p')
 
             lines_data = []
+            has_cancel_lines = any(l.qty < 0 for l in r.line_ids)
+            has_positive_lines = any(l.qty > 0 for l in r.line_ids)
+            is_cancel_round = has_cancel_lines and not has_positive_lines
+
             for l in r.line_ids:
-                if l.qty <= 0:
+                if l.qty == 0:
                     continue
                 lines_data.append({
                     'id': l.id,
@@ -382,7 +391,12 @@ class PosOrder(models.Model):
                     'category_name': l.category_name or '',
                     'qty': int(l.qty) if l.qty.is_integer() else l.qty,
                     'note': l.note or '',
+                    'is_cancelled': l.qty < 0,
                 })
+
+            if is_cancel_round:
+                round_type = 'cancel'
+                title = f'Cancel {reorder_counter}' if not is_first else 'Cancel'
 
             if lines_data:
                 result.append({
@@ -392,6 +406,7 @@ class PosOrder(models.Model):
                     'title': title,
                     'time': time_str,
                     'lines': lines_data,
+                    'is_cancel_round': is_cancel_round,
                 })
 
         return result
@@ -434,7 +449,7 @@ class PosOrder(models.Model):
         # Step 2: Call the real sync_from_ui (saves everything to DB)
         result = super().sync_from_ui(orders)
 
-        # Step 3: Compare line data AFTER — record initial order or new reorder rounds
+        # Step 3: Compare line data AFTER â€” record initial order or new reorder rounds
         orders_to_increment = []
         for order_id, before_info in line_data_before.items():
             order = self.browse(order_id)
@@ -471,7 +486,11 @@ class PosOrder(models.Model):
                         'is_sent_to_kitchen': True,
                     })
                     for l in order.lines:
-                        l.write({'is_sent_to_kitchen': True})
+                        l.write({
+                            'is_sent_to_kitchen': True,
+                            'kitchen_round_seq': 0,
+                            'kitchen_round_title': 'Order',
+                        })
                     orders_to_increment.append(order_id)
                 continue
 
@@ -535,15 +554,18 @@ class PosOrder(models.Model):
                         line.write({
                             'is_reorder': True,
                             'reorder_qty': line.qty,
-                            'reorder_note': f"Qty {int(old_qty) if old_qty.is_integer() else old_qty} ➔ {int(line.qty) if line.qty.is_integer() else line.qty}",
+                            'reorder_note': f"Qty {int(old_qty) if old_qty.is_integer() else old_qty} âž” {int(line.qty) if line.qty.is_integer() else line.qty}",
                             'is_sent_to_kitchen': True,
                         })
                     else:
                         line.write({'is_sent_to_kitchen': True})
 
+            # Update round info on orderlines
+            existing_reorders = order.kitchen_round_ids.filtered(lambda r: r.round_type == 'reorder' or r.sequence > 0)
+            next_seq = len(existing_reorders) + 1
+            reorder_title = f'Reorder {next_seq}'
+
             if new_round_lines:
-                existing_reorders = order.kitchen_round_ids.filtered(lambda r: r.round_type == 'reorder' or r.sequence > 0)
-                next_seq = len(existing_reorders) + 1
                 self.env['pos.kitchen.round'].create({
                     'order_id': order.id,
                     'sequence': next_seq,
@@ -562,6 +584,181 @@ class PosOrder(models.Model):
         return result
 
 
+    @api.model
+    def action_cancel_kitchen_items(self, order_uuid, cancel_data, print_cancel_kot=True):
+        """
+        Called from the POS frontend when the cashier cancels one or more
+        kitchen-sent items, an entire reorder, or the entire order.
+
+        Parameters
+        order_uuid      : str  - UUID or pos_reference/name/id of the POS order
+        cancel_data     : list[dict]  - each dict has:
+                            product_id, product_name, cancel_qty, reason,
+                            line_uuid (optional), line_id (optional),
+                            round_title (optional), round_seq (optional)
+        print_cancel_kot: bool - whether to send a CANCEL KOT to the printer
+
+        Returns a dict with success, printers, order_cancelled, message.
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
+
+        if not order_uuid or not cancel_data:
+            return {'success': False, 'message': 'No data provided'}
+
+        domain = ['|', '|',
+            ('uuid', '=', str(order_uuid)),
+            ('pos_reference', '=', str(order_uuid)),
+            ('name', '=', str(order_uuid))
+        ]
+        if str(order_uuid).isdigit():
+            domain = ['|'] + domain + [('id', '=', int(order_uuid))]
+
+        order = self.search(domain, limit=1)
+        if not order:
+            _logger.warning('action_cancel_kitchen_items: order %s not found', order_uuid)
+            return {'success': False, 'message': f'Order {order_uuid} not found'}
+
+        if order.state == 'cancel':
+            _logger.info('action_cancel_kitchen_items: order %s is already cancelled', order.name)
+            return {
+                'success': True,
+                'already_cancelled': True,
+                'order_cancelled': True,
+                'message': 'Order is already cancelled',
+                'printers': [],
+            }
+
+        # -- 1. Build cancel round lines --------------------------------------
+        cancel_round_lines = []
+        for item in cancel_data:
+            p_id = item.get('product_id')
+            if not p_id:
+                continue
+            prod = self.env['product.product'].browse(p_id) if p_id else False
+            cat_id = False
+            cat_name = 'General'
+            if prod and prod.exists():
+                if prod.pos_categ_ids:
+                    cat_id = prod.pos_categ_ids[0].id
+                    cat_name = prod.pos_categ_ids[0].name
+                elif prod.product_tmpl_id and prod.product_tmpl_id.pos_categ_ids:
+                    cat_id = prod.product_tmpl_id.pos_categ_ids[0].id
+                    cat_name = prod.product_tmpl_id.pos_categ_ids[0].name
+
+            reason_note = item.get('reason', '') or ''
+            cancel_qty = float(item.get('cancel_qty', 1) or 1)
+            prod_name = item.get('product_name', '') or (prod and prod.display_name) or 'Item'
+            round_title = item.get('round_title', '')
+
+            note_parts = ['CANCELLED']
+            if round_title:
+                note_parts.append(f'({round_title})')
+            if reason_note:
+                note_parts.append(f': {reason_note}')
+
+            cancel_round_lines.append((0, 0, {
+                'product_id': p_id,
+                'product_name': prod_name,
+                'pos_category_id': cat_id,
+                'category_name': cat_name,
+                'qty': -abs(cancel_qty),
+                'note': ' '.join(note_parts),
+            }))
+
+        if not cancel_round_lines:
+            return {'success': False, 'message': 'No valid items to cancel'}
+
+        # -- 2. Create a CANCEL round record in pos.kitchen.round -------------
+        existing_reorders = order.kitchen_round_ids.filtered(
+            lambda r: r.round_type == 'reorder' or r.sequence > 0
+        )
+        next_seq = len(existing_reorders) + 1
+
+        self.env['pos.kitchen.round'].create({
+            'order_id': order.id,
+            'sequence': next_seq,
+            'round_type': 'reorder',
+            'line_ids': cancel_round_lines,
+        })
+
+        # -- 3. Adjust / unlink matching lines on the backend POS order --------
+        for item in cancel_data:
+            cancel_qty = float(item.get('cancel_qty', 1) or 1)
+            target_line = False
+
+            # Match by line_id if provided
+            if item.get('line_id'):
+                target_line = order.lines.filtered(lambda l: l.id == item['line_id'])
+
+            # Match by line_uuid if provided
+            if not target_line and item.get('line_uuid'):
+                target_line = order.lines.filtered(lambda l: getattr(l, 'uuid', None) == item['line_uuid'])
+
+            # Match by product_id and round_seq/title
+            if not target_line and item.get('product_id'):
+                p_matches = order.lines.filtered(lambda l: l.product_id.id == item['product_id'])
+                r_seq = item.get('round_seq')
+                if r_seq is not None and hasattr(self.env['pos.order.line'], 'kitchen_round_seq'):
+                    seq_matches = p_matches.filtered(lambda l: getattr(l, 'kitchen_round_seq', None) == r_seq)
+                    target_line = seq_matches[:1] or p_matches[:1]
+                else:
+                    target_line = p_matches[:1]
+
+            if target_line:
+                if cancel_qty >= target_line.qty:
+                    # Full line cancelled -> safely unlink
+                    target_line.with_context(allow_cancel_unlink=True).unlink()
+                else:
+                    # Partial cancellation -> reduce line qty
+                    target_line.write({'qty': target_line.qty - cancel_qty})
+
+        # -- 4. Check if the order is now completely empty ---------------------
+        remaining_lines = order.lines.filtered(
+            lambda l: not (l.product_id and order.config_id.module_pos_discount and l.product_id == order.config_id.discount_product_id)
+        )
+        is_order_empty = (len(remaining_lines) == 0)
+        if is_order_empty:
+            order.write({'state': 'cancel'})
+
+        order.invalidate_recordset([
+            'reorder_count', 'kitchen_state',
+            'kitchen_order_lines_summary', 'kitchen_round_ids', 'lines'
+        ])
+
+        if order.config_id:
+            try:
+                session_id = order.session_id.id if order.session_id else order.config_id.current_session_id.id
+                order.config_id.notify_synchronisation(
+                    session_id,
+                    self.env.context.get('device_identifier', 0)
+                )
+            except Exception as sync_err:
+                _logger.warning("Could not broadcast notify_synchronisation for order %s: %s", order.name, sync_err)
+
+        _logger.info(
+            'Cancel round #%s created for order %s (%s item-types cancelled, empty=%s)',
+            next_seq, order.name, len(cancel_data), is_order_empty
+        )
+
+        # -- 5. Optionally print a CANCEL KOT ---------------------------------
+        if not print_cancel_kot:
+            return {'success': True, 'printers': [], 'order_cancelled': is_order_empty, 'message': 'Cancelled (no print)'}
+
+        try:
+            result = order._print_cancel_kot_to_printers(cancel_data, next_seq)
+        except Exception as e:
+            _logger.error('Failed to print cancel KOT: %s', e)
+            result = {'success': False, 'message': str(e), 'printers': []}
+
+        result['print_success'] = result.get('success', False)
+        result['success'] = True
+        result['order_cancelled'] = is_order_empty
+        if 'print_message' not in result:
+            result['print_message'] = result.get('message', '')
+        return result
+
+
 class PosOrderLine(models.Model):
     _inherit = 'pos.order.line'
 
@@ -569,16 +766,21 @@ class PosOrderLine(models.Model):
     reorder_qty = fields.Float(string='Reordered Quantity', default=0.0)
     reorder_note = fields.Char(string='Reorder Note', default='')
     is_sent_to_kitchen = fields.Boolean(string='Sent to Kitchen', default=False)
+    kitchen_round_seq = fields.Integer(string='Kitchen Round Sequence', default=0)
+    kitchen_round_title = fields.Char(string='Kitchen Round Title', default='Order')
 
     @api.model
     def _load_pos_data_fields(self, config):
         res = super()._load_pos_data_fields(config)
-        return res + ['is_sent_to_kitchen', 'is_reorder', 'reorder_qty', 'reorder_note']
+        return res + ['is_sent_to_kitchen', 'is_reorder', 'reorder_qty', 'reorder_note', 'kitchen_round_seq', 'kitchen_round_title']
 
     def unlink(self):
-        for line in self:
-            if line.is_sent_to_kitchen and line.order_id and line.order_id.state not in ('cancel',):
-                from odoo.exceptions import UserError
-                from odoo import _
-                raise UserError(_("Order line '%s' has already been sent to the kitchen and cannot be deleted.") % (line.full_product_name or (line.product_id and line.product_id.display_name) or 'Item'))
+        if not self.env.context.get('allow_cancel_unlink'):
+            for line in self:
+                if line.is_sent_to_kitchen and line.order_id and line.order_id.state not in ('cancel',):
+                    # pyrefly: ignore [missing-import]
+                    from odoo.exceptions import UserError
+                    # pyrefly: ignore [missing-import]
+                    from odoo import _
+                    raise UserError(_("Order line '%s' has already been sent to the kitchen and cannot be deleted.") % (line.full_product_name or (line.product_id and line.product_id.display_name) or 'Item'))
         return super().unlink()

@@ -33,12 +33,12 @@
                         Order already sent to kitchen: Click below to resend ticket to kitchen printers:
                     </t>
                     <t t-else="">
-                        Add preparation remarks for each item before sending to kitchen:
+                        Adjust quantities with + / -, add preparation remarks, and confirm:
                     </t>
                 </p>
 
                 <!-- Sections list with cards -->
-                <div style="max-height:380px; overflow-y:auto;">
+                <div style="max-height:380px; overflow-y:auto; padding-right: 4px;">
                     <t t-foreach="this.displayedSections" t-as="section" t-key="section.id">
                         <div class="mb-3">
                             <!-- Clean Section Header Banner -->
@@ -57,28 +57,83 @@
 
                             <!-- Section Items -->
                             <t t-foreach="section.lines" t-as="item" t-key="section.id + '_' + item.key">
-                                <div class="card mb-3 border" style="border-radius:8px;">
+                                <div t-attf-class="card mb-3 border {{ item.isCurrent and item.qty == 0 ? 'opacity-50 bg-light' : '' }}"
+                                     style="border-radius:8px; transition: all 0.2s ease;">
                                     <div class="card-body py-2 px-3">
                                         <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge rounded-pill me-2" style="background:#dc3545; color:#ffffff; font-size:12px; padding:4px 9px;">
-                                                    <t t-if="item.isAdditionalQty">+<t t-esc="item.qty"/>x</t>
-                                                    <t t-else=""><t t-esc="item.qty"/>x</t>
+                                            <div class="d-flex align-items-center flex-grow-1 me-2">
+                                                <!-- STEPPER FOR NEW / CURRENT ITEMS -->
+                                                <div t-if="item.isCurrent" class="d-flex align-items-center me-2 gap-1">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-danger p-0 d-flex align-items-center justify-content-center rounded-circle"
+                                                        style="width: 26px; height: 26px; font-weight: 900; line-height: 1;"
+                                                        t-att-disabled="item.qty &lt;= 0"
+                                                        t-on-click="() => this.decreaseQty(item)"
+                                                        title="Decrease quantity">
+                                                        <i class="fa fa-minus" style="font-size: 10px;"/>
+                                                    </button>
+                                                    <span class="badge rounded-pill px-2 py-1 mx-1"
+                                                          t-attf-style="{{ item.qty &gt; 0 ? 'background:#dc3545;' : 'background:#6c757d;' }} color:#ffffff; font-size:13px; font-weight:700; min-width: 34px; text-align: center;">
+                                                        <t t-if="item.isAdditionalQty and item.qty &gt; 0">+<t t-esc="item.qty"/>x</t>
+                                                        <t t-else=""><t t-esc="item.qty"/>x</t>
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-success p-0 d-flex align-items-center justify-content-center rounded-circle"
+                                                        style="width: 26px; height: 26px; font-weight: 900; line-height: 1;"
+                                                        t-on-click="() => this.increaseQty(item)"
+                                                        title="Increase quantity">
+                                                        <i class="fa fa-plus" style="font-size: 10px;"/>
+                                                    </button>
+                                                </div>
+
+                                                <!-- STATIC BADGE FOR PAST LOCKED ITEMS -->
+                                                <span t-else="" class="badge rounded-pill me-2" style="background:#495057; color:#ffffff; font-size:12px; padding:4px 9px;">
+                                                    <t t-esc="item.qty"/>x
                                                 </span>
-                                                <strong style="font-size:14px; color: #212529;">
+
+                                                <strong t-attf-class="text-truncate {{ item.isCurrent and item.qty == 0 ? 'text-decoration-line-through text-muted' : '' }}"
+                                                        style="font-size:14px; color: #212529;">
                                                     <t t-esc="item.name"/>
                                                 </strong>
+                                                <span t-if="item.isCurrent and item.qty == 0" class="badge bg-secondary-subtle text-secondary border ms-2" style="font-size: 10px;">
+                                                    Removed
+                                                </span>
                                             </div>
-                                            <span t-if="!item.isCurrent" class="text-muted small fst-italic" style="font-size: 11px;">
-                                                Previously sent (Locked)
-                                            </span>
-                                            <span t-else="" class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 10px;">
-                                                New
-                                            </span>
+
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span t-if="!item.isCurrent" class="text-muted small fst-italic" style="font-size: 11px;">
+                                                    Previously sent (Locked)
+                                                </span>
+                                                <t t-else="">
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 10px;">
+                                                        New
+                                                    </span>
+                                                    <button
+                                                        t-if="item.qty &gt; 0"
+                                                        type="button"
+                                                        class="btn btn-link text-danger p-0 ms-1"
+                                                        t-on-click="() => this.removeItem(item)"
+                                                        title="Remove this item from batch"
+                                                        style="text-decoration: none;">
+                                                        <i class="fa fa-trash-o" style="font-size: 14px;"/>
+                                                    </button>
+                                                    <button
+                                                        t-else=""
+                                                        type="button"
+                                                        class="btn btn-link text-success p-0 ms-1 small"
+                                                        t-on-click="() => this.increaseQty(item)"
+                                                        title="Add back"
+                                                        style="text-decoration: none; font-size: 12px; font-weight: 600;">
+                                                        Undo
+                                                    </button>
+                                                </t>
+                                            </div>
                                         </div>
 
-                                        <!-- EDITABLE FOR NEW ITEMS -->
-                                        <div t-if="item.isCurrent" class="input-group input-group-sm">
+                                        <!-- Remarks Input (active for new items with qty > 0) -->
+                                        <div t-if="item.isCurrent and item.qty &gt; 0" class="input-group input-group-sm">
                                             <span class="input-group-text bg-light" style="font-size:13px;">Remarks</span>
                                             <input
                                                 type="text"
@@ -89,8 +144,8 @@
                                             />
                                         </div>
 
-                                        <!-- UNEDITABLE / READONLY FOR ALREADY SENT ITEMS -->
-                                        <div t-else="" class="input-group input-group-sm">
+                                        <!-- Remarks Input for previously sent / locked items -->
+                                        <div t-elif="!item.isCurrent" class="input-group input-group-sm">
                                             <span class="input-group-text bg-light text-muted" style="font-size:13px;">Remarks</span>
                                             <input
                                                 type="text"
@@ -113,7 +168,9 @@
                 <button class="btn btn-secondary me-2 px-4" t-on-click="() => this.cancel()">
                     Cancel
                 </button>
-                <button class="btn btn-danger px-4 fw-bold" t-on-click="() => this.confirm()">
+                <button t-attf-class="btn {{ this.currentButtonInfo.disabled ? 'btn-secondary disabled' : 'btn-danger' }} px-4 fw-bold"
+                        t-att-disabled="this.currentButtonInfo.disabled"
+                        t-on-click="() => this.confirm()">
                     <i t-if="this.currentButtonInfo.isResend" class="fa fa-refresh me-1"/>
                     <t t-esc="this.currentButtonInfo.label"/>
                 </button>

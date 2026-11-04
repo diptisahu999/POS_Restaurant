@@ -9,6 +9,16 @@
                 <span class="kitchen-btn-icon">🍳</span>
                 <span class="kitchen-btn-text">Send to Kitchen</span>
             </button>
+
+            <!-- Cancel Kitchen Items button — only visible when order is active and has items to cancel -->
+            <button
+                class="btn btn-outline-danger w-100 cancel-kitchen-btn d-flex align-items-center justify-content-center gap-2"
+                t-on-click="() => this.cancelKitchenItems()"
+                t-if="this.canCancelKitchenItems"
+                title="Cancel any sent item, reorder, or entire order">
+                <i class="fa fa-ban"/>
+                <span>Cancel Order / Reorder Items</span>
+            </button>
         </xpath>
 
         <!-- Keypad Toggle Bar above Numpad for Responsive Screen Space Management -->
@@ -49,4 +59,5 @@
             </div>
         </xpath>
     </t>
+
 </templates>

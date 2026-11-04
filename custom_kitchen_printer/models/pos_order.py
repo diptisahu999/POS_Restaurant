@@ -359,3 +359,220 @@ class PosOrder(models.Model):
             }
         }
 
+
+
+    def _print_cancel_kot_to_printers(self, cancel_data, kot_number=None):
+        """
+        Sends a CANCEL KOT slip to all configured network kitchen printers.
+        Called from pos_custom_kitchen.PosOrder.action_cancel_kitchen_items().
+
+        Parameters
+        ----------
+        cancel_data : list[dict]  – same structure as action_cancel_kitchen_items
+        kot_number  : int         – round/cancel sequence for the badge
+        """
+        printed_printers = []
+        errors = []
+
+        order = self
+        kot_badge = f"#{int(kot_number):02d}" if kot_number else "#??"
+
+        printers = self.env['pos.printer'].search([
+            ('printer_type', '=', 'network_tcp'),
+            ('network_printer_ip', '!=', False)
+        ])
+        if order.config_id and order.config_id.printer_ids:
+            config_printers = order.config_id.printer_ids.filtered(
+                lambda p: p.printer_type == 'network_tcp' and p.network_printer_ip
+            )
+            if config_printers:
+                printers = config_printers
+
+        if not printers:
+            return {'success': False, 'message': 'No network printers configured for this POS', 'printers': []}
+
+        # Build header info
+        table_num = ""
+        floor_name = ""
+        table_name = "Counter"
+        if order.table_id:
+            table_num = str(order.table_id.table_number) if order.table_id.table_number is not False else ""
+            floor_name = order.table_id.floor_id.name if order.table_id.floor_id else ""
+            table_name = f"Table {table_num}" if table_num else (order.table_id.display_name or "Table")
+        elif order.table_stand_number:
+            table_num = str(order.table_stand_number)
+            table_name = f"Table {table_num}"
+
+        order_num = order.tracking_number or (str(order.sequence_number) if order.sequence_number else '')
+        if not order_num and order.pos_reference:
+            parts = order.pos_reference.split('-')
+            order_num = parts[-1] if len(parts) > 1 else order.pos_reference
+        if not order_num:
+            order_num = str(order.name or order.id)
+
+        import pytz, datetime
+        tz_name = (
+            self.env.context.get('tz')
+            or order.user_id.tz
+            or self.env.user.tz
+            or 'Asia/Kolkata'
+        )
+        try:
+            user_tz = pytz.timezone(tz_name)
+        except Exception:
+            user_tz = pytz.timezone('Asia/Kolkata')
+
+        dt_obj = datetime.datetime.now(datetime.timezone.utc).astimezone(user_tz)
+        date_str = dt_obj.strftime('%d-%m-%Y')
+        time_str = dt_obj.strftime('%I:%M %p')
+
+        for printer in printers:
+            # Filter items that belong to this printer (by product or category)
+            printer_product_ids = set(printer.product_ids.ids)
+            printer_cat_ids = set()
+            if printer.product_categories_ids:
+                printer_cat_ids = set(
+                    self.env['pos.category'].search(
+                        [('id', 'child_of', printer.product_categories_ids.ids)]
+                    ).ids
+                )
+
+            matching_items = []
+            for item in cancel_data:
+                p_id = item.get('product_id')
+                if p_id and str(p_id).isdigit():
+                    p_id = int(p_id)
+                prod = self.env['product.product'].browse(p_id) if p_id else None
+                if (not prod or not prod.exists()) and item.get('product_name'):
+                    prod = self.env['product.product'].search([('name', '=', item['product_name'])], limit=1)
+                    if prod:
+                        p_id = prod.id
+
+                item_cat_ids = set()
+                if prod and prod.exists():
+                    if prod.pos_categ_ids:
+                        item_cat_ids.update(prod.pos_categ_ids.ids)
+                    if prod.product_tmpl_id and prod.product_tmpl_id.pos_categ_ids:
+                        item_cat_ids.update(prod.product_tmpl_id.pos_categ_ids.ids)
+                if item.get('pos_category_id'):
+                    c_id = item['pos_category_id']
+                    if c_id and str(c_id).isdigit():
+                        c_id = int(c_id)
+                    item_cat_ids.add(c_id)
+
+                if printer_product_ids:
+                    if p_id and p_id in printer_product_ids:
+                        matching_items.append(item)
+                elif printer_cat_ids:
+                    if item_cat_ids & printer_cat_ids:
+                        matching_items.append(item)
+                else:
+                    matching_items.append(item)   # print all if no filter
+
+            if not matching_items:
+                continue
+
+            # Build ESC/POS text ticket
+            header_title = f"*** CANCEL KOT - {printer.name.upper()} ***"
+            kot_col = f"KOT NO:   {kot_badge}".ljust(19)
+            order_col = f"ORDER: #{order_num}"
+
+            ticket_lines = [
+                "================================",
+                header_title.center(32),
+                "================================",
+                f"{kot_col}{order_col}",
+                f"TABLE:    {table_name}",
+                f"TIME:     {time_str} ({date_str})",
+                f"REF:      {order.pos_reference or order.name}",
+                "--- CANCELLED ITEMS -------------",
+            ]
+
+            items_html_list = []
+            for item in matching_items:
+                qty = float(item.get('cancel_qty', 1))
+                name = item.get('product_name', 'Item')
+                reason = item.get('reason', '')
+                round_info = item.get('round_title', '')
+                qty_str = str(int(qty)) if qty == int(qty) else str(qty)
+                ticket_lines.append(f"  {qty_str}x  {name}  [CANCEL]")
+                if round_info:
+                    ticket_lines.append(f"   -> Round:  {round_info}")
+                if reason:
+                    ticket_lines.append(f"   -> Reason: {reason}")
+
+                reason_html = f'<div style="font-size: 11px; color: #dc3545; font-style: italic; margin-left: 14px;">Reason: {reason}</div>' if reason else ''
+                round_html = f'<div style="font-size: 11px; color: #666; margin-left: 14px;">Round: {round_info}</div>' if round_info else ''
+                items_html_list.append(f"""
+                    <div style="margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; color: #dc3545;">
+                            <span>{qty_str}x {name}</span>
+                            <span style="background: #dc3545; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">CANCEL</span>
+                        </div>
+                        {round_html}
+                        {reason_html}
+                    </div>
+                """)
+
+            ticket_lines.append("================================")
+            ticket_text = "\n".join(ticket_lines)
+
+            table_html_badge = f'<div style="font-size: 13px; font-weight: bold; color: #000; margin-bottom: 4px;">TABLE: {table_name}</div>'
+            ticket_html = f"""
+                <div style="font-family: monospace; background: #fff; padding: 12px; border: 1px dashed #dc3545; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); max-width: 320px;">
+                    <div style="text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px dashed #dc3545; padding-bottom: 6px; margin-bottom: 8px; color: #dc3545;">
+                        {header_title}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
+                        <span style="color: #6f42c1;">KOT NO: {kot_badge}</span>
+                        <span style="color: #d63384;">ORDER: #{order_num}</span>
+                    </div>
+                    {table_html_badge}
+                    <div style="font-size: 12px; color: #333; margin-bottom: 2px;"><strong>TIME:</strong> {time_str} ({date_str})</div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;"><strong>REF:</strong> {order.pos_reference or order.name}</div>
+                    <div style="border-top: 1px dashed #ccc; padding-top: 8px; margin-bottom: 8px;">
+                        {''.join(items_html_list)}
+                    </div>
+                    <div style="border-top: 2px dashed #dc3545; margin-top: 8px; text-align: center; font-size: 11px; color: #888; padding-top: 4px;">
+                        IP: {printer.network_printer_ip}:{printer.network_printer_port}
+                    </div>
+                </div>
+            """
+
+            ok, err = printer._send_escpos_data(
+                printer.network_printer_ip,
+                printer.network_printer_port,
+                ticket_text
+            )
+
+            if ok:
+                printed_printers.append(f"{printer.name} ({printer.network_printer_ip})")
+            else:
+                errors.append(f"{printer.name}: {err}")
+
+            # Log to kitchen printer log
+            try:
+                self.env['pos.kitchen.printer.log'].sudo().create({
+                    'name': f"CANCEL {kot_badge} - Order #{order_num} ({table_name})",
+                    'printer_id': printer.id,
+                    'order_id': order.id,
+                    'order_number': order_num,
+                    'table_number': table_num,
+                    'floor_name': floor_name,
+                    'table_name': table_name,
+                    'order_ref': order.pos_reference or order.name,
+                    'status': 'printed' if ok else 'failed',
+                    'error_message': err if not ok else False,
+                    'ticket_text': ticket_text,
+                    'ticket_html': ticket_html,
+                    'item_count': len(matching_items),
+                })
+            except Exception as log_err:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to create cancel KOT log: %s", log_err
+                )
+
+        if errors and not printed_printers:
+            return {'success': False, 'message': ', '.join(errors), 'printers': []}
+        return {'success': True, 'printers': printed_printers, 'message': 'Cancel KOT printed'}

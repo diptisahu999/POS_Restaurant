@@ -22,11 +22,15 @@ patch(PosOrderline.prototype, {
     setup(vals) {
         super.setup(...arguments);
         this.is_sent_to_kitchen = Boolean(vals.is_sent_to_kitchen);
+        this.kitchen_round_seq = vals.kitchen_round_seq !== undefined ? vals.kitchen_round_seq : (vals.is_reorder ? 1 : 0);
+        this.kitchen_round_title = vals.kitchen_round_title || (this.kitchen_round_seq === 0 ? "Order" : `Reorder ${this.kitchen_round_seq}`);
     },
 
     serializeForORM(opts = {}) {
         const data = super.serializeForORM(opts);
         data.is_sent_to_kitchen = Boolean(this.is_sent_to_kitchen);
+        data.kitchen_round_seq = this.kitchen_round_seq || 0;
+        data.kitchen_round_title = this.kitchen_round_title || (this.kitchen_round_seq === 0 ? "Order" : `Reorder ${this.kitchen_round_seq}`);
         return data;
     },
 
@@ -39,7 +43,7 @@ patch(PosOrderline.prototype, {
     },
 
     setQuantity(quantity, keep_price) {
-        if (this.is_sent_to_kitchen && this.qty !== undefined && this.qty !== 0) {
+        if (!this._allow_kitchen_cancel && this.is_sent_to_kitchen && this.qty !== undefined && this.qty !== 0) {
             const quant = typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
             if (quant !== this.qty) {
                 return false;
@@ -49,21 +53,21 @@ patch(PosOrderline.prototype, {
     },
 
     setUnitPrice(price) {
-        if (this.is_sent_to_kitchen && this.price_unit !== undefined) {
+        if (!this._allow_kitchen_cancel && this.is_sent_to_kitchen && this.price_unit !== undefined) {
             return false;
         }
         return super.setUnitPrice(...arguments);
     },
 
     setDiscount(discount) {
-        if (this.is_sent_to_kitchen && this.discount !== undefined) {
+        if (!this._allow_kitchen_cancel && this.is_sent_to_kitchen && this.discount !== undefined) {
             return false;
         }
         return super.setDiscount(...arguments);
     },
 
     delete() {
-        if (this.is_sent_to_kitchen && this.order_id && !this.order_id.finalized) {
+        if (!this._allow_kitchen_cancel && this.is_sent_to_kitchen && this.order_id && !this.order_id.finalized) {
             return false;
         }
         return super.delete(...arguments);
@@ -85,10 +89,10 @@ patch(PosOrder.prototype, {
     },
 
     removeOrderline(line) {
-        if (line && line.is_sent_to_kitchen) {
+        if (!this._allow_kitchen_cancel && !line?._allow_kitchen_cancel && line && line.is_sent_to_kitchen) {
             this.env?.services?.dialog?.add(AlertDialog, {
                 title: _t("Item Locked"),
-                body: _t("This item has already been sent to the kitchen and cannot be deleted."),
+                body: _t("This item has already been sent to the kitchen and cannot be deleted. Please use 'Cancel Order / Reorder Items'."),
             });
             return false;
         }
@@ -157,15 +161,24 @@ patch(FloorScreen.prototype, {
         if (!table) {
             return [];
         }
+        const isOrderActive = (o) => Boolean(
+            o &&
+            !o.finalized &&
+            o.state !== "cancel" &&
+            !o.uiState?.cancelled &&
+            !o._is_cancelled &&
+            (o.lines ? o.lines.some((l) => !l.isDiscountLine && (typeof l.get_quantity === "function" ? l.get_quantity() > 0 : (l.qty > 0))) : true)
+        );
+
         const activeOrders = [];
         if (typeof table.getOrder === "function") {
             const singleOrder = table.getOrder();
-            if (singleOrder && !singleOrder.finalized) {
+            if (isOrderActive(singleOrder)) {
                 activeOrders.push(singleOrder);
             }
         }
         if (typeof table.getOrders === "function") {
-            const multiOrders = table.getOrders().filter((o) => !o.finalized);
+            const multiOrders = table.getOrders().filter(isOrderActive);
             for (const o of multiOrders) {
                 if (!activeOrders.includes(o)) {
                     activeOrders.push(o);
@@ -220,6 +233,20 @@ patch(FloorScreen.prototype, {
     },
 
     async onClickTable(table, ev) {
+        // If the table currently holds a cancelled order, remove it so a fresh order is created
+        if (table) {
+            const orders = typeof table.getOrders === "function" ? table.getOrders() : (typeof table.getOrder === "function" && table.getOrder() ? [table.getOrder()] : []);
+            for (const o of orders) {
+                if (o && (o.state === "cancel" || o.uiState?.cancelled || o._is_cancelled)) {
+                    if (typeof table.removeOrder === "function") {
+                        table.removeOrder(o);
+                    }
+                    if (typeof this.pos.removeOrder === "function") {
+                        this.pos.removeOrder(o, false);
+                    }
+                }
+            }
+        }
         await super.onClickTable(...arguments);
         
         // If we are not in edit mode or transfer mode, and we just selected a table

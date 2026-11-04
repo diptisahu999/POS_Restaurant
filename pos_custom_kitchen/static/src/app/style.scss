@@ -288,6 +288,29 @@
         }
     }
 
+    /* Cancel Kitchen Items Button */
+    .cancel-kitchen-btn {
+        height: 34px !important;
+        padding: 4px 12px !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        margin-top: 3px !important;
+        border-radius: 8px !important;
+        border: 2px dashed #dc2626 !important;
+        color: #dc2626 !important;
+        background: transparent !important;
+        transition: all 0.15s ease !important;
+
+        &:hover {
+            background: rgba(220, 38, 38, 0.08) !important;
+            border-style: solid !important;
+        }
+
+        &:active {
+            transform: scale(0.98);
+        }
+    }
+
     /* Actionpad (Payment / New) */
     .actionpad {
         margin-top: 3px !important;
@@ -534,3 +557,52 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
+
+/* ========================================================
+   CANCEL ITEM POPUP STYLES
+   ======================================================== */
+
+.cancel-item-popup {
+    .cancel-items-list {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+
+        &::-webkit-scrollbar { width: 6px; }
+        &::-webkit-scrollbar-track { background: transparent; }
+        &::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+    }
+
+    .cancel-item-row {
+        transition: background-color 0.15s ease;
+
+        &:last-child {
+            border-bottom: none !important;
+        }
+
+        &:hover {
+            background-color: rgba(220, 38, 38, 0.05) !important;
+        }
+
+        &.bg-danger-subtle {
+            background-color: #fee2e2 !important;
+            border-left: 3px solid #dc2626;
+        }
+    }
+
+    .nav-pills .nav-link {
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover:not(.active) {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+    }
+
+    button {
+        transition: all 0.12s ease;
+    }
+}

@@ -88,10 +88,13 @@ export class KitchenRemarksPopup extends Component {
         if (!existingRounds || existingRounds.length === 0) {
             const initialLines = orderlines.map((line) => {
                 const key = this._getKey(line);
+                const q = this.getLineQuantity(line);
                 return {
                     key: key,
                     name: this.getLineDisplayName(line),
-                    qty: this.getLineQuantity(line),
+                    qty: q,
+                    initialQty: q,
+                    baseSentQty: 0,
                     note: line.customer_note || line.note || "",
                     isCurrent: true,
                     isReorder: false,
@@ -189,6 +192,8 @@ export class KitchenRemarksPopup extends Component {
                     key: this._getKey(line),
                     name: this.getLineDisplayName(line),
                     qty: extraQty,
+                    initialQty: extraQty,
+                    baseSentQty: sentQty,
                     totalQty: currentQty,
                     note: line.is_sent_to_kitchen ? "" : (line.customer_note || ""),
                     isCurrent: true,
@@ -259,21 +264,63 @@ export class KitchenRemarksPopup extends Component {
         this.state.activeTab = tabId;
     }
 
+    increaseQty(item) {
+        if (!item || !item.isCurrent) return;
+        item.qty += 1;
+        this._updateTabCounts();
+    }
+
+    decreaseQty(item) {
+        if (!item || !item.isCurrent) return;
+        if (item.qty > 0) {
+            item.qty -= 1;
+            this._updateTabCounts();
+        }
+    }
+
+    removeItem(item) {
+        if (!item || !item.isCurrent) return;
+        item.qty = 0;
+        this._updateTabCounts();
+    }
+
+    _updateTabCounts() {
+        for (const tab of this.state.tabs) {
+            if (tab.id === "all") {
+                tab.count = this.state.sections.reduce((acc, s) => {
+                    return acc + s.lines.filter((l) => !l.isCurrent || l.qty > 0).length;
+                }, 0);
+            } else {
+                const s = this.state.sections.find((sec) => sec.id === tab.id);
+                if (s) {
+                    tab.count = s.lines.filter((l) => !l.isCurrent || l.qty > 0).length;
+                }
+            }
+        }
+    }
+
     get currentButtonInfo() {
         const activeTab = this.state.activeTab;
         const currentRoundTitle = this.state.currentRoundTitle;
 
+        // Check if there are active unsent items in the current section
+        const currentSection = this.state.sections.find((s) => s.isCurrent);
+        const hasActiveCurrentItems = currentSection && currentSection.lines.some((l) => l.qty > 0);
+
         if (!activeTab || activeTab === "all") {
             if (currentRoundTitle) {
                 const isInitial = currentRoundTitle === "Order" && (!this.props.existingRounds || !this.props.existingRounds.length);
+                const baseLabel = isInitial ? "Confirm & Send to Kitchen" : `Confirm & Send to Kitchen (${currentRoundTitle})`;
                 return {
-                    label: isInitial ? "Confirm & Send to Kitchen" : `Confirm & Send to Kitchen (${currentRoundTitle})`,
+                    label: hasActiveCurrentItems ? baseLabel : "No Items to Send",
+                    disabled: !hasActiveCurrentItems,
                     isResend: false,
                     targetRoundId: null,
                 };
             } else {
                 return {
                     label: "Resend to Kitchen",
+                    disabled: false,
                     isResend: true,
                     targetRoundId: null,
                 };
@@ -284,14 +331,18 @@ export class KitchenRemarksPopup extends Component {
         if (activeSection) {
             if (activeSection.isCurrent) {
                 const isInitial = activeSection.title === "Order" && (!this.props.existingRounds || !this.props.existingRounds.length);
+                const sectionActive = activeSection.lines.some((l) => l.qty > 0);
+                const baseLabel = isInitial ? "Confirm & Send to Kitchen" : `Confirm & Send to Kitchen (${activeSection.title})`;
                 return {
-                    label: isInitial ? "Confirm & Send to Kitchen" : `Confirm & Send to Kitchen (${activeSection.title})`,
+                    label: sectionActive ? baseLabel : "No Items to Send",
+                    disabled: !sectionActive,
                     isResend: false,
                     targetRoundId: null,
                 };
             } else {
                 return {
                     label: `Resend to Kitchen (${activeSection.title})`,
+                    disabled: false,
                     isResend: true,
                     targetRoundId: activeSection.roundId || null,
                 };
@@ -300,13 +351,15 @@ export class KitchenRemarksPopup extends Component {
 
         if (currentRoundTitle) {
             return {
-                label: `Confirm & Send to Kitchen (${currentRoundTitle})`,
+                label: hasActiveCurrentItems ? `Confirm & Send to Kitchen (${currentRoundTitle})` : "No Items to Send",
+                disabled: !hasActiveCurrentItems,
                 isResend: false,
                 targetRoundId: null,
             };
         }
         return {
             label: "Resend to Kitchen",
+            disabled: false,
             isResend: true,
             targetRoundId: null,
         };
@@ -322,18 +375,30 @@ export class KitchenRemarksPopup extends Component {
 
     confirm() {
         const btnInfo = this.currentButtonInfo;
+        if (btnInfo.disabled) {
+            return;
+        }
+
         const currentNotes = {};
+        const lineQuantities = {};
+
         for (const section of this.state.sections) {
             if (section.isCurrent) {
                 for (const item of section.lines) {
-                    if (item.isCurrent && this.state.notes[item.key] !== undefined) {
-                        currentNotes[item.key] = this.state.notes[item.key];
+                    if (item.isCurrent) {
+                        if (this.state.notes[item.key] !== undefined) {
+                            currentNotes[item.key] = this.state.notes[item.key];
+                        }
+                        const finalQty = (item.baseSentQty || 0) + (item.qty || 0);
+                        lineQuantities[item.key] = finalQty;
                     }
                 }
             }
         }
+
         this.props.getPayload({
             notes: currentNotes,
+            lineQuantities: lineQuantities,
             isResend: btnInfo.isResend,
             targetRoundId: btnInfo.targetRoundId,
             targetTitle: btnInfo.label,
@@ -345,4 +410,3 @@ export class KitchenRemarksPopup extends Component {
         this.props.close();
     }
 }
-

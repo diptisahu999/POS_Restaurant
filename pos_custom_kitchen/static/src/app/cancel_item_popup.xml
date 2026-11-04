@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="pos_custom_kitchen.CancelItemPopup">
+        <Dialog title="'Cancel Kitchen Items'" size="'lg'">
+            <t t-set-slot="header">
+                <div class="d-flex align-items-center justify-content-between w-100 pe-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-danger fw-bold fs-5">
+                            <i class="fa fa-ban me-1"/>Cancel Order / Reorder Items
+                        </span>
+                    </div>
+                    <t t-if="orderTableDisplay">
+                        <span class="badge text-bg-light border text-dark fw-bold px-2 py-1" style="font-size: 13px;">
+                            <i class="fa fa-cutlery me-1 text-danger"/>
+                            <t t-esc="orderTableDisplay"/>
+                        </span>
+                    </t>
+                </div>
+            </t>
+
+            <t t-set-slot="default">
+                <div class="cancel-item-popup" style="min-width: 520px;">
+
+                    <!-- Info banner -->
+                    <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-2" role="alert" style="font-size:13px;">
+                        <i class="fa fa-exclamation-triangle mt-1 text-warning flex-shrink-0"/>
+                        <div>
+                            Select items or entire reorders to <strong>cancel</strong>. Cancelled items will be removed from the order and a <strong>Cancel KOT</strong> will be printed for the kitchen.
+                        </div>
+                    </div>
+
+                    <!-- ROUNDS TABS (if multiple tabs exist) -->
+                    <t t-if="state.tabs.length &gt; 1">
+                        <ul class="nav nav-pills gap-1 mb-2 border-bottom pb-2">
+                            <t t-foreach="state.tabs" t-as="tab" t-key="tab.id">
+                                <li class="nav-item">
+                                    <button type="button"
+                                            t-attf-class="nav-link py-1 px-3 fw-bold rounded-pill {{ state.activeTab === tab.id ? (tab.isReorder ? 'active bg-danger text-white' : 'active bg-dark text-white') : 'bg-light text-secondary border' }}"
+                                            style="font-size: 12px;"
+                                            t-on-click="() => this.selectTab(tab.id)">
+                                        <t t-esc="tab.label"/>
+                                        <span class="badge rounded-pill ms-1 {{ state.activeTab === tab.id ? 'bg-white text-dark' : 'bg-secondary text-white' }}" style="font-size: 10px;">
+                                            <t t-esc="tab.count"/>
+                                        </span>
+                                    </button>
+                                </li>
+                            </t>
+                        </ul>
+                    </t>
+
+                    <!-- QUICK ACTION BAR -->
+                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap bg-light p-2 rounded border">
+                        <!-- Round-specific 1-Click Cancel button -->
+                        <t t-if="activeRoundTab.roundSeq !== null and activeRoundTab.roundSeq &gt; 0">
+                            <button class="btn btn-sm btn-danger fw-bold d-flex align-items-center gap-1 shadow-sm"
+                                    t-on-click="() => this.cancelEntireCurrentRound()">
+                                <i class="fa fa-bolt"/>
+                                <span>Cancel Entire <t t-esc="activeRoundTab.roundTitle"/></span>
+                            </button>
+                        </t>
+                        <t t-elif="activeRoundTab.roundSeq === 0">
+                            <button class="btn btn-sm btn-danger fw-bold d-flex align-items-center gap-1 shadow-sm"
+                                    t-on-click="() => this.cancelEntireCurrentRound()">
+                                <i class="fa fa-bolt"/>
+                                <span>Cancel Entire Initial Order</span>
+                            </button>
+                        </t>
+                        <t t-else="">
+                            <button class="btn btn-sm btn-outline-danger fw-bold d-flex align-items-center gap-1"
+                                    t-on-click="() => this.cancelEntireOrder()"
+                                    title="Cancel all items in the entire order">
+                                <i class="fa fa-times-circle"/>
+                                <span>Cancel Entire Order</span>
+                            </button>
+                        </t>
+
+                        <!-- Select All / Clear -->
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.selectAllInCurrentTab()">
+                            <i class="fa fa-check-square-o me-1"/>Select All
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.clearAllInCurrentTab()">
+                            <i class="fa fa-square-o me-1"/>Clear
+                        </button>
+
+                        <!-- Selection Summary Badge -->
+                        <span class="ms-auto text-secondary fw-semibold small align-self-center">
+                            <t t-if="hasSelection">
+                                <span class="badge text-bg-danger me-1"><t t-esc="selectedItems.length"/> items</span>
+                                <span class="badge text-bg-dark">(Qty: <t t-esc="totalCancelQty"/>)</span>
+                            </t>
+                            <t t-else="">
+                                <span class="text-muted">0 items selected</span>
+                            </t>
+                        </span>
+                    </div>
+
+                    <!-- ITEMS LIST -->
+                    <div class="cancel-items-list border rounded mb-3" style="max-height: 280px; overflow-y: auto;">
+                        <t t-if="displayedItems.length === 0">
+                            <div class="text-center text-muted py-4">
+                                <i class="fa fa-info-circle me-1"/>No kitchen-sent items found in this section.
+                            </div>
+                        </t>
+                        <t t-foreach="displayedItems" t-as="item" t-key="item.key">
+                            <div t-attf-class="cancel-item-row d-flex align-items-start gap-2 p-2 border-bottom {{ item.selected ? 'bg-danger-subtle' : '' }}"
+                                 style="cursor:pointer; transition: background 0.12s;"
+                                 t-on-click="() => this.toggleItem(item)">
+
+                                <!-- Checkbox -->
+                                <div class="pt-1" style="flex-shrink:0;">
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           t-att-checked="item.selected"
+                                           t-on-click.stop="() => this.toggleItem(item)"
+                                           style="width:19px; height:19px; cursor:pointer;"/>
+                                </div>
+
+                                <!-- Item info & controls -->
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="fw-bold text-dark" style="font-size:14px;">
+                                            <t t-esc="item.qty"/>x <t t-esc="item.name"/>
+                                        </span>
+
+                                        <!-- Round tag -->
+                                        <t t-if="item.roundSeq &gt; 0">
+                                            <span class="badge text-bg-danger" style="font-size:10px;">
+                                                <i class="fa fa-refresh me-1"/><t t-esc="item.roundTitle"/>
+                                            </span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="badge text-bg-secondary" style="font-size:10px;">
+                                                <i class="fa fa-file-text-o me-1"/><t t-esc="item.roundTitle"/>
+                                            </span>
+                                        </t>
+
+                                        <!-- Category tag if any -->
+                                        <t t-if="item.category">
+                                            <span class="badge text-bg-light border text-muted" style="font-size:10px;">
+                                                <t t-esc="item.category"/>
+                                            </span>
+                                        </t>
+                                    </div>
+
+                                    <!-- Stepper + Reason (shown when selected) -->
+                                    <t t-if="item.selected">
+                                        <div class="mt-2 d-flex align-items-center gap-2 flex-wrap" t-on-click.stop="">
+                                            <!-- Stepper -->
+                                            <div class="d-flex align-items-center gap-1 bg-white p-1 rounded border">
+                                                <span class="text-muted small fw-bold me-1" style="font-size:11px;">Cancel Qty:</span>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold"
+                                                        style="font-size:12px; height:26px;"
+                                                        t-on-click="(ev) => this.decQty(item, ev)">-</button>
+                                                <input type="number"
+                                                       class="form-control form-control-sm text-center fw-bold"
+                                                       style="width:50px; height:26px; padding:2px;"
+                                                       t-att-max="item.qty"
+                                                       t-att-min="1"
+                                                       t-att-value="item.cancelQty"
+                                                       t-on-change="(ev) => this.onCancelQtyChange(item, ev)"
+                                                       t-on-click.stop=""/>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold"
+                                                        style="font-size:12px; height:26px;"
+                                                        t-on-click="(ev) => this.incQty(item, ev)">+</button>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-light border py-0 px-1 text-muted fw-bold"
+                                                        style="font-size:10px; height:26px;"
+                                                        title="Cancel all quantity of this item"
+                                                        t-on-click="(ev) => this.setMaxQty(item, ev)">
+                                                    All (<t t-esc="item.qty"/>)
+                                                </button>
+                                            </div>
+
+                                            <!-- Specific item reason -->
+                                            <div class="flex-grow-1" style="min-width: 160px;">
+                                                <input type="text"
+                                                       class="form-control form-control-sm"
+                                                       placeholder="Specific reason (optional)..."
+                                                       t-att-value="item.reason"
+                                                       t-on-input="(ev) => this.onReasonChange(item, ev)"
+                                                       t-on-click.stop=""/>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- SUGGESTED REASONS QUICK CHIPS -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                            <i class="fa fa-lightbulb-o text-warning"/>
+                            Suggested Cancel Reason (click to select):
+                        </label>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            <t t-foreach="suggestedReasons" t-as="sr" t-key="sr.id">
+                                <button type="button"
+                                        t-attf-class="btn btn-sm rounded-pill fw-semibold {{ state.globalReason === sr.label ? 'btn-danger text-white shadow-sm' : 'btn-outline-secondary bg-light' }}"
+                                        style="font-size: 11px; padding: 3px 9px;"
+                                        t-on-click="() => this.selectSuggestedReason(sr.label)">
+                                    <i t-attf-class="fa {{ sr.icon }} me-1"/>
+                                    <t t-esc="sr.label"/>
+                                </button>
+                            </t>
+                        </div>
+
+                        <!-- Global Reason text input -->
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white text-muted"><i class="fa fa-comment-o"/></span>
+                            <input type="text"
+                                   class="form-control"
+                                   placeholder="Reason applied to selected items (click a suggestion above or type)..."
+                                   t-att-value="state.globalReason"
+                                   t-on-input="onGlobalReasonChange"/>
+                            <button t-if="state.globalReason"
+                                    class="btn btn-outline-secondary"
+                                    type="button"
+                                    t-on-click="() => this.clearGlobalReason()"
+                                    title="Clear reason">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PRINT CANCEL KOT TOGGLE -->
+                    <div class="d-flex align-items-center gap-2 p-2 border rounded bg-light">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="printCancelKotSwitch"
+                                   t-att-checked="state.printCancelKot"
+                                   t-on-change="togglePrintKot"
+                                   style="width:36px; height:20px; cursor:pointer;"/>
+                            <label class="form-check-label fw-bold ms-2" for="printCancelKotSwitch" style="cursor:pointer; font-size:13px;">
+                                <i class="fa fa-print me-1 text-danger"/>
+                                Print Cancel KOT to Kitchen Printer
+                            </label>
+                        </div>
+                        <span class="text-muted small ms-auto" style="font-size:12px;">
+                            <t t-if="state.printCancelKot">
+                                <span class="badge text-bg-success"><i class="fa fa-check me-1"/>Ticket will print</span>
+                            </t>
+                            <t t-else="">
+                                <span class="badge text-bg-secondary">Silent (no print)</span>
+                            </t>
+                        </span>
+                    </div>
+
+                </div>
+            </t>
+
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary" t-on-click="cancelDialog">
+                    <i class="fa fa-times me-1"/>Close
+                </button>
+                <button class="btn btn-danger fw-bold px-3 shadow-sm"
+                        t-att-disabled="!hasSelection"
+                        t-on-click="confirm">
+                    <i class="fa fa-ban me-1"/>
+                    Cancel <t t-esc="selectedItems.length"/> Item(s)
+                    <t t-if="hasSelection">
+                        (Qty: <t t-esc="totalCancelQty"/>)
+                    </t>
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>
