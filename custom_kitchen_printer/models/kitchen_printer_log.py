@@ -66,6 +66,10 @@ class PosKitchenPrinterLog(models.Model):
                         'message': f'Ticket sent to {rec.printer_id.name} ({rec.printer_id.network_printer_ip})',
                         'type': 'success',
                         'sticky': False,
+                        'next': {
+                            'type': 'ir.actions.client',
+                            'tag': 'reload',
+                        }
                     }
                 }
             else:
