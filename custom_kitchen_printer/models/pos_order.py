@@ -115,31 +115,70 @@ class PosOrder(models.Model):
                 _logger.warning("No active network TCP printers found.")
                 return {'success': False, 'message': 'No Network Printers configured with an IP address'}
 
-            for printer in printers:
-                printer_product_ids = set(printer.product_ids.ids)
-                printer_cat_ids = set()
-                if printer.product_categories_ids:
-                    printer_cat_ids = set(self.env['pos.category'].search([('id', 'child_of', printer.product_categories_ids.ids)]).ids)
-                matching_items = []
+            # Phase 1: Determine items for each printer based on configured products / categories
+            printer_matching_map = {}
+            all_matched_indices = set()
 
-                for itm in order_items_to_print:
+            for printer in printers:
+                printer_product_ids = set(printer.product_ids.ids) if printer.product_ids else set()
+
+                direct_cat_ids = set()
+                if printer.product_categories_ids:
+                    direct_cat_ids.update(printer.product_categories_ids.ids)
+                if hasattr(printer, 'category_ids') and printer.category_ids:
+                    direct_cat_ids.update(printer.category_ids.ids)
+                if hasattr(self.env['pos.category'], 'printer_ids'):
+                    try:
+                        cat_with_printer = self.env['pos.category'].search([('printer_ids', 'in', printer.id)])
+                        if cat_with_printer:
+                            direct_cat_ids.update(cat_with_printer.ids)
+                    except Exception:
+                        pass
+
+                printer_cat_ids = set()
+                if direct_cat_ids:
+                    printer_cat_ids = set(self.env['pos.category'].search([('id', 'child_of', list(direct_cat_ids))]).ids)
+
+                matched_items = []
+                for idx, itm in enumerate(order_items_to_print or []):
                     p_id = itm.get('product_id')
                     item_cat_ids = set(itm.get('pos_category_ids', []))
                     if not item_cat_ids and itm.get('pos_category_id'):
                         item_cat_ids = {itm['pos_category_id']}
 
-                    # 1. Primary rule: match by specific mapped items / products
-                    if printer_product_ids:
-                        if p_id and p_id in printer_product_ids:
-                            matching_items.append(itm)
-                    # 2. Fallback rule: match by category if no items configured
-                    elif printer_cat_ids:
-                        if item_cat_ids & printer_cat_ids:
-                            matching_items.append(itm)
-                    # 3. Default: if neither items nor categories are configured, print all items
-                    else:
-                        matching_items.append(itm)
+                    matched = False
+                    if printer_product_ids and p_id and p_id in printer_product_ids:
+                        matched = True
+                    elif printer_cat_ids and (item_cat_ids & printer_cat_ids):
+                        matched = True
+                    elif not printer_product_ids and not printer_cat_ids:
+                        matched = True
 
+                    if matched:
+                        matched_items.append(itm)
+                        all_matched_indices.add(idx)
+
+                printer_matching_map[printer.id] = matched_items
+
+            # Phase 2: If ANY items did not match any printer (or if NO printer matched anything at all):
+            # Dispatch them to all active printers so tickets are NEVER lost and ALWAYS appear in the Kitchen Dashboard!
+            unmatched_items = [
+                itm for idx, itm in enumerate(order_items_to_print or [])
+                if idx not in all_matched_indices
+            ]
+            if unmatched_items:
+                # If no printer matched any item at all, assign all items to all printers
+                if not all_matched_indices:
+                    for printer in printers:
+                        printer_matching_map[printer.id] = list(order_items_to_print)
+                else:
+                    # If some items matched specific printers and others were unassigned,
+                    # assign unassigned items to all printers so they don't get forgotten
+                    for printer in printers:
+                        printer_matching_map[printer.id] = (printer_matching_map.get(printer.id) or []) + list(unassigned_items)
+
+            for printer in printers:
+                matching_items = printer_matching_map.get(printer.id, [])
                 if not matching_items:
                     _logger.info("No matching items for printer %s", printer.name)
                     continue
@@ -292,9 +331,30 @@ class PosOrder(models.Model):
                 except Exception:
                     pass
 
-        if errors and not printed_printers:
+        if printed_printers:
+            return {
+                'success': True,
+                'printers': printed_printers,
+                'message': 'Printed successfully'
+            }
+
+        recent_logs = self.env['pos.kitchen.printer.log'].sudo().search([
+            ('order_id', 'in', self.ids)
+        ], limit=1, order='id desc')
+
+        if recent_logs:
+            err_msg = errors[0] if errors else 'printer offline'
+            return {
+                'success': True,
+                'printers': [],
+                'warning': f"Ticket logged to Kitchen Dashboard! (Physical printer: {err_msg})",
+                'message': f"Logged to Kitchen Dashboard ({err_msg})"
+            }
+
+        if errors:
             return {'success': False, 'message': ', '.join(errors), 'printers': []}
-        return {'success': True, 'printers': printed_printers, 'message': 'Printed successfully'}
+
+        return {'success': True, 'printers': [], 'message': 'Dispatched to kitchen'}
 
     @api.model
     def action_print_kitchen_order(self, order_uuid, round_id=None):

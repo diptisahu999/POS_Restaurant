@@ -172,10 +172,16 @@ patch(ProductScreen.prototype, {
                         `Resent to ${printerNames}!`,
                         { type: "success" }
                     );
+                    if (printResult.warning) {
+                        this.env.services.notification.add(
+                            printResult.warning,
+                            { type: "warning", sticky: true }
+                        );
+                    }
                 } else if (printResult && !printResult.success) {
                     this.env.services.notification.add(
                         `Printer Warning: ${printResult.message || 'No ticket printed'}`,
-                        { type: "warning" }
+                        { type: "warning", sticky: true }
                     );
                 }
             } catch (e) {
@@ -290,10 +296,16 @@ patch(ProductScreen.prototype, {
                     `Printing Order: Sent to ${printerNames}!`,
                     { type: "success" }
                 );
+                if (printResult.warning) {
+                    this.env.services.notification.add(
+                        printResult.warning,
+                        { type: "warning", sticky: true }
+                    );
+                }
             } else if (printResult && !printResult.success) {
                 this.env.services.notification.add(
                     `Printer Warning: ${printResult.message || 'No ticket printed'}`,
-                    { type: "warning" }
+                    { type: "warning", sticky: true }
                 );
             }
         } catch (e) {

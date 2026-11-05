@@ -34,6 +34,14 @@ class PosPrinter(models.Model):
         domain=[('available_in_pos', '=', True)],
         help='Select the specific products / items that will be printed on this kitchen printer.'
     )
+    category_ids = fields.Many2many(
+        'pos.category',
+        'printer_category_rel',
+        'printer_id',
+        'category_id',
+        string='Assigned Food Categories',
+        help='Food categories configured to print on this kitchen printer.'
+    )
     ticket_log_ids = fields.One2many(
         'pos.kitchen.printer.log',
         'printer_id',
@@ -95,6 +103,28 @@ class PosPrinter(models.Model):
             "================================\r\n"
         )
         success, error = self._send_escpos_data(self.network_printer_ip, self.network_printer_port, test_text)
+
+        # Log test print to Kitchen Printer Dashboard
+        try:
+            self.env['pos.kitchen.printer.log'].sudo().create({
+                'name': f"TEST PRINT - {self.name}",
+                'printer_id': self.id,
+                'status': 'printed' if success else 'failed',
+                'error_message': error if not success else False,
+                'ticket_text': test_text,
+                'ticket_html': f"""<div style="font-family: monospace; background: #fff; padding: 12px; border: 1px dashed #bbb; border-radius: 6px;">
+                    <div style="text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px dashed #444; padding-bottom: 6px; margin-bottom: 8px; color: #0d6efd;">
+                        {self.name.upper()} TEST
+                    </div>
+                    <div style="font-size: 13px; margin-bottom: 4px;"><strong>IP:</strong> {self.network_printer_ip}:{self.network_printer_port}</div>
+                    <div style="font-size: 13px; margin-bottom: 4px;"><strong>TIME:</strong> {time_str} ({date_str})</div>
+                    <div style="font-size: 13px; margin-bottom: 4px;"><strong>STATUS:</strong> <span style="color: {'#198754' if success else '#dc3545'}; font-weight: bold;">{'SUCCESS' if success else f'FAILED ({error})'}</span></div>
+                </div>""",
+                'item_count': 1,
+            })
+        except Exception as log_err:
+            _logger.error("Failed to create test print log: %s", log_err)
+
         if not success:
             raise UserError(
                 f"Could not connect to {self.network_printer_ip}:{self.network_printer_port}!\n\n"
