@@ -151,45 +151,26 @@ class PosOrder(models.Model):
 
             kot_badge = f"#{current_kot_number:02d}"
 
-            # --- POST TIMESTAMPED LOG TO CHATTER (INITIAL ORDER & EXTRA ITEMS) ---
+            # --- POST SIMPLE ONE-LINE LOG TO CHATTER (INITIAL ORDER & EXTRA ITEMS) ---
             try:
-                is_reorder_batch = bool(current_is_reorder)
-                badge_bg = "#dc3545" if is_reorder_batch else "#0d6efd"
-                badge_label = f"Extra Items [{current_round_title}]" if is_reorder_batch and current_round_title else ("Extra Items" if is_reorder_batch else "Kitchen Order")
-                icon_tag = "<b>[+]</b> " if is_reorder_batch else ""
-
-                items_li = []
+                items_summary_list = []
                 for itm in (order_items_to_print or []):
                     qty = itm.get('qty', 1)
                     qty_str = f"{int(qty)}" if isinstance(qty, (int, float)) and float(qty).is_integer() else f"{qty}"
                     p_name = itm.get('product_name') or 'Item'
                     note = itm.get('note') or ''
-                    note_html = f" <em style='color: #dc3545;'>(Remark: {note})</em>" if note else ""
-                    items_li.append(f"<li style='margin-bottom: 2px;'><strong>{qty_str}x</strong> {p_name}{note_html}</li>")
+                    item_str = f"{qty_str}x {p_name}"
+                    if note:
+                        item_str += f" ({note})"
+                    items_summary_list.append(item_str)
 
-                items_html = "".join(items_li) if items_li else "<li>(No items)</li>"
-                table_disp = f"{table_name} ({floor_name})" if floor_name else table_name
+                items_text = ", ".join(items_summary_list) if items_summary_list else "No items"
 
-                chatter_body = (
-                    f'<div style="font-family: inherit; font-size: 13px;">'
-                    f'<div style="margin-bottom: 5px;">'
-                    f'<span style="background-color: {badge_bg}; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">'
-                    f"{icon_tag}{badge_label} -- KOT {kot_badge}"
-                    f'</span> '
-                    f'<span style="color: #555; font-size: 12px; margin-left: 6px;">'
-                    f'Sent to Kitchen at <strong>{time_str}</strong> ({date_str})'
-                    f'</span>'
-                    f'</div>'
-                    f'<div style="color: #444; font-size: 12px; margin-bottom: 4px;">'
-                    f'<strong>Table:</strong> {table_disp} &nbsp;|&nbsp; <strong>Order:</strong> #{order_num}'
-                    f'</div>'
-                    f'<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 6px 10px; margin-top: 4px;">'
-                    f'<ul style="margin: 0; padding-left: 18px; color: #212529; font-size: 13px; line-height: 1.5;">'
-                    f'{items_html}'
-                    f'</ul>'
-                    f'</div>'
-                    f'</div>'
-                )
+                if current_is_reorder:
+                    reorder_label = f" ({current_round_title})" if current_round_title else ""
+                    chatter_body = f"Extra items sent to Kitchen at {time_str}{reorder_label}: {items_text}"
+                else:
+                    chatter_body = f"Order sent to Kitchen at {time_str}: {items_text}"
 
                 order.sudo().message_post(
                     body=chatter_body,
@@ -197,7 +178,7 @@ class PosOrder(models.Model):
                     subtype_xmlid='mail.mt_note'
                 )
                 order.sudo().write({'last_kitchen_print_date': fields.Datetime.now()})
-                _logger.info("Kitchen order log note posted to chatter on %s (KOT %s)", order.name, kot_badge)
+                _logger.info("Kitchen order log note posted to chatter on %s: %s", order.name, chatter_body)
             except Exception as chatter_err:
                 _logger.warning("Could not post kitchen order log to chatter on %s: %s", order.name, chatter_err)
 
