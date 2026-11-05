@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import base64
+import logging
 # pyrefly: ignore [missing-import]
 from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 # Clean SVG icons encoded in base64 for payment buttons
 UPI_ICON_SVG = base64.b64encode(b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -20,7 +23,7 @@ NC_ICON_SVG = base64.b64encode(b'''<svg xmlns="http://www.w3.org/2000/svg" viewB
 
 
 def _setup_custom_bill_payment_methods(env):
-    """Creates/updates default payment methods and assigns them to POS configs."""
+    """Creates/updates default payment methods and assigns them to POS configs, ensuring Cash is available on all shops."""
     company = env.company
     bank_journal = env['account.journal'].search([
         ('type', '=', 'bank'),
@@ -64,7 +67,18 @@ def _setup_custom_bill_payment_methods(env):
     elif not nc_pm.image:
         nc_pm.write({'image': NC_ICON_SVG})
 
-    # Link both to all active pos configs
+    # 3. Primary Cash Payment Method
+    cash_pm = PaymentMethod.search([
+        ('company_id', '=', company.id),
+        ('is_cash_count', '=', True),
+    ], limit=1)
+    if not cash_pm:
+        cash_pm = PaymentMethod.search([
+            ('name', 'ilike', 'Cash'),
+            ('company_id', '=', company.id)
+        ], limit=1)
+
+    # 4. Link required payment methods (UPI, NC, and Cash) to all active POS configs
     pos_configs = env['pos.config'].search([])
     for config in pos_configs:
         commands = []
@@ -72,10 +86,18 @@ def _setup_custom_bill_payment_methods(env):
             commands.append((4, upi_pm.id))
         if nc_pm and nc_pm.id not in config.payment_method_ids.ids:
             commands.append((4, nc_pm.id))
+        if cash_pm and cash_pm.id not in config.payment_method_ids.ids:
+            commands.append((4, cash_pm.id))
+
         if commands:
-            config.with_context(bypass_payment_method_ids_forbidden_change=True).write({
-                'payment_method_ids': commands
-            })
+            try:
+                config.with_context(bypass_payment_method_ids_forbidden_change=True).write({
+                    'payment_method_ids': commands
+                })
+                _logger.info("Updated payment methods for POS shop %s: added %s", config.name, commands)
+            except Exception as w_err:
+                _logger.warning("Could not write payment_method_ids on config %s: %s", config.name, w_err)
+
         env.cr.execute("UPDATE pos_config SET last_data_change = NOW(), write_date = NOW() WHERE id = %s;", (config.id,))
 
 
@@ -83,8 +105,13 @@ class PosPaymentMethod(models.Model):
     _inherit = 'pos.payment.method'
 
     def _is_write_forbidden(self, fields):
-        # Whitelist 'image' and 'name' so UI icon and NC name can be updated without session restart
-        return super()._is_write_forbidden(fields - {'image', 'name'})
+        # Whitelist fields so Cash and other methods can be assigned / modified across POS shops without open session errors
+        return super()._is_write_forbidden(fields - {'image', 'name', 'config_ids', 'sequence'})
+
+    @api.constrains('config_ids', 'is_cash_count', 'journal_id')
+    def _check_cash_method_single_shop(self):
+        # Allow assigning the same Cash payment method to multiple POS Shops (ARECA, Daily Delight Cafe, etc.)
+        pass
 
 
 class PosConfig(models.Model):
@@ -100,3 +127,11 @@ class PosConfig(models.Model):
         default=True,
         help='Display a dynamic UPI QR Code on restaurant bills and receipts for instant scanning and payment'
     )
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        try:
+            _setup_custom_bill_payment_methods(self.env)
+        except Exception as e:
+            _logger.warning("Could not auto-setup payment methods: %s", e)
+        return super()._load_pos_data_fields(config_id)
