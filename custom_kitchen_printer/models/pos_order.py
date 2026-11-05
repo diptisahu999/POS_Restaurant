@@ -107,6 +107,100 @@ class PosOrder(models.Model):
                         printers_list = [f"{l.printer_id.name} ({l.printer_id.network_printer_ip})" for l in recent_logs if l.printer_id]
                         return {'success': True, 'printers': printers_list or ['Kitchen Printer'], 'message': 'Printed successfully'}
 
+            # Compute Order, Table, and Local Timestamp information
+            table_num = ""
+            floor_name = ""
+            table_name = "Counter"
+            if order.table_id:
+                table_num = str(order.table_id.table_number) if order.table_id.table_number is not False else ""
+                floor_name = order.table_id.floor_id.name if order.table_id.floor_id else ""
+                if table_num:
+                    table_name = f"Table {table_num}"
+                else:
+                    table_name = order.table_id.display_name or "Table"
+            elif order.table_stand_number:
+                table_num = str(order.table_stand_number)
+                table_name = f"Table {table_num}"
+
+            # Extract human-readable Order Number (tracking_number in POS)
+            order_num = order.tracking_number or (str(order.sequence_number) if order.sequence_number else '')
+            if not order_num and order.pos_reference:
+                parts = order.pos_reference.split('-')
+                order_num = parts[-1] if len(parts) > 1 else order.pos_reference
+            if not order_num:
+                order_num = str(order.name or order.id)
+
+            tz_name = (
+                order.env.context.get('tz')
+                or order.user_id.tz
+                or order.env.user.tz
+                or (order.session_id and order.session_id.user_id and order.session_id.user_id.tz)
+                or (order.company_id and order.company_id.partner_id and order.company_id.partner_id.tz)
+                or 'Asia/Kolkata'
+            )
+            try:
+                user_tz = pytz.timezone(tz_name)
+            except Exception:
+                user_tz = pytz.timezone('Asia/Kolkata')
+
+            # Use actual current timestamp in the local timezone
+            import datetime
+            dt_obj = datetime.datetime.now(datetime.timezone.utc).astimezone(user_tz)
+            date_str = dt_obj.strftime('%d-%m-%Y')
+            time_str = dt_obj.strftime('%I:%M %p')
+
+            kot_badge = f"#{current_kot_number:02d}"
+
+            # --- POST TIMESTAMPED LOG TO CHATTER (INITIAL ORDER & EXTRA ITEMS) ---
+            try:
+                is_reorder_batch = bool(current_is_reorder)
+                badge_bg = "#dc3545" if is_reorder_batch else "#0d6efd"
+                badge_label = f"Extra Items [{current_round_title}]" if is_reorder_batch and current_round_title else ("Extra Items" if is_reorder_batch else "Kitchen Order")
+                icon_tag = "<b>[+]</b> " if is_reorder_batch else ""
+
+                items_li = []
+                for itm in (order_items_to_print or []):
+                    qty = itm.get('qty', 1)
+                    qty_str = f"{int(qty)}" if isinstance(qty, (int, float)) and float(qty).is_integer() else f"{qty}"
+                    p_name = itm.get('product_name') or 'Item'
+                    note = itm.get('note') or ''
+                    note_html = f" <em style='color: #dc3545;'>(Remark: {note})</em>" if note else ""
+                    items_li.append(f"<li style='margin-bottom: 2px;'><strong>{qty_str}x</strong> {p_name}{note_html}</li>")
+
+                items_html = "".join(items_li) if items_li else "<li>(No items)</li>"
+                table_disp = f"{table_name} ({floor_name})" if floor_name else table_name
+
+                chatter_body = (
+                    f'<div style="font-family: inherit; font-size: 13px;">'
+                    f'<div style="margin-bottom: 5px;">'
+                    f'<span style="background-color: {badge_bg}; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">'
+                    f"{icon_tag}{badge_label} -- KOT {kot_badge}"
+                    f'</span> '
+                    f'<span style="color: #555; font-size: 12px; margin-left: 6px;">'
+                    f'Sent to Kitchen at <strong>{time_str}</strong> ({date_str})'
+                    f'</span>'
+                    f'</div>'
+                    f'<div style="color: #444; font-size: 12px; margin-bottom: 4px;">'
+                    f'<strong>Table:</strong> {table_disp} &nbsp;|&nbsp; <strong>Order:</strong> #{order_num}'
+                    f'</div>'
+                    f'<div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 6px 10px; margin-top: 4px;">'
+                    f'<ul style="margin: 0; padding-left: 18px; color: #212529; font-size: 13px; line-height: 1.5;">'
+                    f'{items_html}'
+                    f'</ul>'
+                    f'</div>'
+                    f'</div>'
+                )
+
+                order.sudo().message_post(
+                    body=chatter_body,
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note'
+                )
+                order.sudo().write({'last_kitchen_print_date': fields.Datetime.now()})
+                _logger.info("Kitchen order log note posted to chatter on %s (KOT %s)", order.name, kot_badge)
+            except Exception as chatter_err:
+                _logger.warning("Could not post kitchen order log to chatter on %s: %s", order.name, chatter_err)
+
             printers = self.env['pos.printer'].search([
                 ('printer_type', '=', 'network_tcp'),
                 ('network_printer_ip', '!=', False)
@@ -175,7 +269,7 @@ class PosOrder(models.Model):
                     # If some items matched specific printers and others were unassigned,
                     # assign unassigned items to all printers so they don't get forgotten
                     for printer in printers:
-                        printer_matching_map[printer.id] = (printer_matching_map.get(printer.id) or []) + list(unassigned_items)
+                        printer_matching_map[printer.id] = (printer_matching_map.get(printer.id) or []) + list(unmatched_items)
 
             for printer in printers:
                 matching_items = printer_matching_map.get(printer.id, [])
@@ -183,48 +277,6 @@ class PosOrder(models.Model):
                     _logger.info("No matching items for printer %s", printer.name)
                     continue
 
-                table_num = ""
-                floor_name = ""
-                table_name = "Counter"
-                if order.table_id:
-                    table_num = str(order.table_id.table_number) if order.table_id.table_number is not False else ""
-                    floor_name = order.table_id.floor_id.name if order.table_id.floor_id else ""
-                    if table_num:
-                        table_name = f"Table {table_num}"
-                    else:
-                        table_name = order.table_id.display_name or "Table"
-                elif order.table_stand_number:
-                    table_num = str(order.table_stand_number)
-                    table_name = f"Table {table_num}"
-
-                # Extract human-readable Order Number (tracking_number in POS)
-                order_num = order.tracking_number or (str(order.sequence_number) if order.sequence_number else '')
-                if not order_num and order.pos_reference:
-                    parts = order.pos_reference.split('-')
-                    order_num = parts[-1] if len(parts) > 1 else order.pos_reference
-                if not order_num:
-                    order_num = str(order.name or order.id)
-
-                tz_name = (
-                    order.env.context.get('tz')
-                    or order.user_id.tz
-                    or order.env.user.tz
-                    or (order.session_id and order.session_id.user_id and order.session_id.user_id.tz)
-                    or (order.company_id and order.company_id.partner_id and order.company_id.partner_id.tz)
-                    or 'Asia/Kolkata'
-                )
-                try:
-                    user_tz = pytz.timezone(tz_name)
-                except Exception:
-                    user_tz = pytz.timezone('Asia/Kolkata')
-
-                # Use actual current print timestamp in the local timezone
-                import datetime
-                dt_obj = datetime.datetime.now(datetime.timezone.utc).astimezone(user_tz)
-                date_str = dt_obj.strftime('%d-%m-%Y')
-                time_str = dt_obj.strftime('%I:%M %p')
-
-                kot_badge = f"#{current_kot_number:02d}"
                 header_title = f"KOT - {printer.name.upper()}"
 
                 # 1. Plain text formatted for ESC/POS thermal printer (32-character line width)
@@ -240,8 +292,12 @@ class PosOrder(models.Model):
                     f"TABLE:    {table_name}",
                     f"TIME:     {time_str} ({date_str})",
                     f"REF:      {order.pos_reference or order.name}",
-                    "--------------------------------",
                 ]
+                if current_is_reorder:
+                    reorder_label = current_round_title if current_round_title else "REORDER"
+                    ticket_lines.append(f"*** {reorder_label} (EXTRA) ***".center(32))
+                ticket_lines.append("--------------------------------")
+
                 items_html_list = []
                 for item in matching_items:
                     qty = item.get('qty', 1)
@@ -250,7 +306,7 @@ class PosOrder(models.Model):
                     note_html = ""
                     if item.get('note'):
                         ticket_lines.append(f"   -> Remark: {item['note']}")
-                        note_html = f"<div style='color: #dc3545; font-size: 13px; font-weight: 600; margin-left: 12px; font-style: italic;'>↳ Remark: {item['note']}</div>"
+                        note_html = f"<div style='color: #dc3545; font-size: 13px; font-weight: 600; margin-left: 12px; font-style: italic;'>&rarr; Remark: {item['note']}</div>"
 
                     items_html_list.append(f"""
                         <div style="margin-bottom: 6px;">
@@ -274,12 +330,19 @@ class PosOrder(models.Model):
                         <div style="font-size: 14px; margin-bottom: 4px;"><strong>TABLE:</strong> <span class="badge text-bg-warning">{table_name}</span></div>
                     """
 
+                reorder_badge_html = f"""
+                    <div style="text-align: center; font-weight: bold; font-size: 13px; color: #dc3545; background-color: #ffeef0; border: 1px solid #f5c2c7; border-radius: 4px; padding: 3px; margin-bottom: 6px;">
+                        [!] {current_round_title or 'REORDER'} (EXTRA ITEMS)
+                    </div>
+                """ if current_is_reorder else ""
+
                 # 2. Rich HTML preview formatted for the Kitchen Printer Kanban/UI Log
                 ticket_html = f"""
                     <div style="font-family: monospace; background: #fff; padding: 12px; border: 1px dashed #bbb; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); max-width: 320px;">
                         <div style="text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px dashed #444; padding-bottom: 6px; margin-bottom: 8px; color: #0d6efd;">
                             {header_title}
                         </div>
+                        {reorder_badge_html}
                         <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
                             <span style="color: #6f42c1;">KOT NO: {kot_badge}</span>
                             <span style="color: #d63384;">ORDER: #{order_num}</span>
@@ -307,8 +370,9 @@ class PosOrder(models.Model):
 
                 # 4. Save to Kitchen Printer Log for UI verification
                 try:
+                    log_title = f"KOT {kot_badge} - {current_round_title} - Order #{order_num} ({table_name})" if current_is_reorder and current_round_title else f"KOT {kot_badge} - Order #{order_num} ({table_name})"
                     self.env['pos.kitchen.printer.log'].sudo().create({
-                        'name': f"KOT {kot_badge} - Order #{order_num} ({table_name})",
+                        'name': log_title,
                         'printer_id': printer.id,
                         'order_id': order.id,
                         'order_number': order_num,
@@ -330,7 +394,6 @@ class PosOrder(models.Model):
                     order.write({'last_kitchen_print_date': fields.Datetime.now()})
                 except Exception:
                     pass
-
         if printed_printers:
             return {
                 'success': True,
