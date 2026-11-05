@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 80mm Thermal Receipt Paper Format -->
+    <record id="paperformat_thermal_bill" model="report.paperformat">
+        <field name="name">Thermal Bill 80mm</field>
+        <field name="default" eval="False"/>
+        <field name="format">custom</field>
+        <field name="page_width">80</field>
+        <field name="page_height">260</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">3</field>
+        <field name="margin_bottom">3</field>
+        <field name="margin_left">3</field>
+        <field name="margin_right">3</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- Report Action -->
+    <record id="action_report_pos_order_bill" model="ir.actions.report">
+        <field name="name">Print Bill</field>
+        <field name="model">pos.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">custom_bill.report_pos_order_bill</field>
+        <field name="report_file">custom_bill.report_pos_order_bill</field>
+        <field name="print_report_name">'Bill - %s' % (object._get_bill_number_formatted())</field>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="custom_bill.paperformat_thermal_bill"/>
+    </record>
+
+    <!-- Report Template -->
+    <template id="report_pos_order_bill">
+        <t t-call="web.basic_layout">
+            <t t-foreach="docs" t-as="doc">
+                <div class="page" style="font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.35; color: #000; width: 100%; max-width: 290px; margin: 0 auto; padding: 2px;">
+                    <!-- Company Header -->
+                    <div style="text-align: center; margin-bottom: 6px;">
+                        <div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">
+                            <t t-esc="doc.company_id.name or 'LA FLORA CLUB'"/>
+                        </div>
+                        <div style="font-weight: bold; font-size: 11px; text-transform: uppercase;">
+                            BALAR INFRASTRUCTURE PRIVATE LIMITED
+                        </div>
+                        <div style="font-size: 10px; margin-top: 2px;">
+                            VILLE FLORA, DAMAN-KUNTA ROAD,<br/>
+                            VAPI, GUJARAT 396191
+                        </div>
+                        <div style="font-size: 10px;">
+                            Mo: +91 97379 82028
+                        </div>
+                        <div style="font-size: 10px;">
+                            GSTIN: <t t-esc="doc.company_id.vat or '24AAECB1503A1ZP'"/>
+                        </div>
+                        <div style="font-size: 10px;">
+                            State: GUJARAT
+                        </div>
+
+                        <div style="font-weight: bold; font-size: 12px; margin-top: 6px; text-transform: uppercase;">
+                            TAX INVOICE
+                        </div>
+                        <div style="font-weight: bold; font-size: 11px; text-transform: uppercase;">
+                            <t t-esc="doc.config_id.name or 'ARICA'"/>
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Bill No, Order No, Bill Date -->
+                    <div>
+                        <table style="width: 100%; font-size: 11px;">
+                            <tr>
+                                <td style="text-align: left; font-weight: bold;">
+                                    Bill No: <t t-esc="doc._get_bill_number_formatted()"/>
+                                </td>
+                                <td style="text-align: right; font-weight: bold;">
+                                    Order No: <t t-esc="doc._get_order_number_formatted()"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" style="text-align: left;">
+                                    Bill Date: <t t-esc="doc._get_bill_date_formatted()"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Table No, Steward, Cover -->
+                    <div>
+                        <table style="width: 100%; font-size: 11px; text-align: center;">
+                            <tr style="font-weight: bold; text-transform: uppercase;">
+                                <td style="text-align: left; width: 33%;">TABLE NO</td>
+                                <td style="text-align: center; width: 34%;">STEWARD</td>
+                                <td style="text-align: right; width: 33%;">COVER</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight: bold;">
+                                    <t t-esc="doc._get_table_number_formatted()"/>
+                                </td>
+                                <td style="text-align: center; text-transform: uppercase;">
+                                    <t t-esc="doc.employee_id.name or doc.user_id.name or 'ADMIN'"/>
+                                </td>
+                                <td style="text-align: right; font-weight: bold;">
+                                    <t t-esc="doc.customer_count or 1"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Kot Number -->
+                    <div t-if="doc.kot_numbers" style="font-size: 11px; font-weight: bold;">
+                        Kot : <t t-esc="doc.kot_numbers"/>
+                        <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+                    </div>
+
+                    <!-- Items Table -->
+                    <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                        <thead>
+                            <tr style="font-weight: bold;">
+                                <th style="text-align: left; width: 48%; padding: 2px 0;">Item Name</th>
+                                <th style="text-align: center; width: 14%; padding: 2px 0;">Qty</th>
+                                <th style="text-align: right; width: 18%; padding: 2px 0;">Rate</th>
+                                <th style="text-align: right; width: 20%; padding: 2px 0;">Amount</th>
+                            </tr>
+                        </thead>
+                    </table>
+
+                    <div style="border-top: 1px dashed #000; margin: 2px 0;"/>
+
+                    <t t-set="bill_data" t-value="doc._get_bill_data()"/>
+                    <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                        <tbody>
+                            <t t-foreach="bill_data['lines']" t-as="line">
+                                <tr>
+                                    <td style="text-align: left; width: 48%; padding: 2px 0; text-transform: uppercase;">
+                                        <t t-esc="line['name']"/>
+                                    </td>
+                                    <td style="text-align: center; width: 14%; padding: 2px 0;">
+                                        <t t-esc="line['qty']"/>
+                                    </td>
+                                    <td style="text-align: right; width: 18%; padding: 2px 0;">
+                                        <t t-esc="line['rate']"/>
+                                    </td>
+                                    <td style="text-align: right; width: 20%; padding: 2px 0;">
+                                        <t t-esc="line['amount']"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Totals -->
+                    <table style="width: 100%; font-size: 11px;">
+                        <tr t-if="not doc.nc_reason">
+                            <td style="text-align: left;">Sub Total</td>
+                            <td style="text-align: right;"><t t-esc="'%.2f' % bill_data['subtotal']"/></td>
+                        </tr>
+                        <tr t-if="bill_data['discount'] > 0 and not doc.nc_reason">
+                            <td style="text-align: left;"><t t-esc="bill_data['discount_label']"/></td>
+                            <td style="text-align: right;">-<t t-esc="'%.2f' % bill_data['discount']"/></td>
+                        </tr>
+                        <tr t-if="bill_data['tax'] > 0 and not doc.nc_reason">
+                            <td style="text-align: left;">Tax 5%</td>
+                            <td style="text-align: right;"><t t-esc="'%.2f' % bill_data['tax']"/></td>
+                        </tr>
+                        <tr t-if="bill_data['round_off'] != 0 and not doc.nc_reason">
+                            <td style="text-align: left;">Round Off</td>
+                            <td style="text-align: right;"><t t-esc="'%.2f' % bill_data['round_off']"/></td>
+                        </tr>
+                    </table>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Bill Amount (Grand Total) -->
+                    <table style="width: 100%; font-size: 12px; font-weight: bold;">
+                        <tr>
+                            <td style="text-align: left;">Bill Amount</td>
+                            <td style="text-align: right;"><t t-esc="'%.2f' % bill_data['total']"/></td>
+                        </tr>
+                    </table>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Amount In Words -->
+                    <div style="font-size: 11px; margin: 3px 0;">
+                        Amount In Words : <span style="font-weight: bold;"><t t-esc="bill_data['amount_in_words']"/></span>
+                    </div>
+
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"/>
+
+                    <!-- Footer: Cashier & Signature -->
+                    <table style="width: 100%; font-size: 11px; margin-top: 6px;">
+                        <tr>
+                            <td style="text-align: left;">
+                                Cashier: <strong style="text-transform: uppercase;"><t t-esc="doc.user_id.name or 'ADMIN'"/></strong>
+                            </td>
+                            <td style="text-align: right;">
+                                Guest Signature
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
+

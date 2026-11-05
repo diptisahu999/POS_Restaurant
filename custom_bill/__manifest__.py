@@ -10,6 +10,7 @@
     'data': [
         'views/pos_config_views.xml',
         'views/pos_order_views.xml',
+        'views/pos_order_report.xml',
         'views/res_config_settings_views.xml',
         'views/product_views.xml',
     ],

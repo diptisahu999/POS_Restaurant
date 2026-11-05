@@ -18,6 +18,9 @@
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_pos_order_invoice']" position="before">
+                <button name="action_print_bill" string="Print Bill" type="object" class="btn btn-primary" icon="fa-print"/>
+            </xpath>
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="nc_reason" readonly="1" invisible="not nc_reason"/>
             </xpath>
