@@ -12,12 +12,16 @@ patch(PosOrder.prototype, {
         this.discount_reason = vals.discount_reason || "";
         this.discount_percentage = vals.discount_percentage || 0;
         this.kot_numbers = vals.kot_numbers || "";
+        this.custom_bill_number = vals.custom_bill_number || "";
     },
 
     serializeForORM(opts = {}) {
         const data = super.serializeForORM(opts);
         if (this.nc_reason) {
             data.nc_reason = this.nc_reason;
+        }
+        if (this.custom_bill_number) {
+            data.custom_bill_number = this.custom_bill_number;
         }
         return data;
     },
@@ -55,5 +59,3 @@ patch(PosOrderline.prototype, {
         this.uiState.isDiscountLine = Boolean(val);
     },
 });
-
-

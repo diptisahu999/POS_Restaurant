@@ -5,6 +5,9 @@
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_reference']" position="before">
+                <field name="custom_bill_number" optional="show" string="Bill No"/>
+            </xpath>
             <xpath expr="//field[@name='session_id']" position="after">
                 <field name="table_id" optional="show" string="Table"/>
                 <field name="customer_count" optional="show" string="Guests"/>
@@ -18,6 +21,9 @@
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_reference']" position="before">
+                <field name="custom_bill_number" readonly="1" string="Bill Number"/>
+            </xpath>
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="nc_reason" readonly="1" invisible="not nc_reason"/>
             </xpath>
@@ -30,6 +36,7 @@
         <field name="inherit_id" ref="point_of_sale.view_pos_order_search"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='config_id']" position="after">
+                <field name="custom_bill_number" string="Bill Number"/>
                 <field name="table_id" string="Table"/>
                 <field name="nc_reason" string="NC Reason"/>
                 <filter string="Table" name="group_by_table" domain="[]" context="{'group_by': 'table_id'}"/>

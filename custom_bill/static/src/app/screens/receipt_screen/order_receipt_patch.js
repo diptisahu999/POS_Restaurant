@@ -75,9 +75,102 @@ patch(OrderReceipt.prototype, {
         return true;
     },
 
+    get outletBillInfo() {
+        const order = this.order;
+        const config = this.pos?.config || order?.config || {};
+        const configName = (config.name || "").trim().toLowerCase();
+        const customPrefix = (config.bill_prefix || "").trim().toUpperCase();
+
+        const presetName = (
+            order?.preset_id?.name ||
+            order?.preset?.name ||
+            order?.uiState?.preset?.name ||
+            ""
+        ).toString().toLowerCase();
+
+        const table = order?.table_id || order?.self_ordering_table_id || order?.table;
+        const tableName = (table?.name || table?.table_number || "").toString().toLowerCase();
+        const floorName = (table?.floor_id?.name || table?.floor?.name || "").toString().toLowerCase();
+
+        const isTakeAway = (
+            configName.includes("take away") ||
+            configName.includes("takeaway") ||
+            configName === "ta" ||
+            presetName.includes("takeout") ||
+            presetName.includes("take away") ||
+            presetName.includes("takeaway") ||
+            floorName.includes("take away") ||
+            floorName.includes("takeaway") ||
+            tableName.startsWith("ta") ||
+            tableName.includes("takeaway") ||
+            tableName.includes("take away")
+        );
+
+        if (isTakeAway) {
+            return {
+                prefix: "TA",
+                digits: 3,
+                outletName: "TAKE AWAY",
+            };
+        }
+
+        const isIRD = (
+            configName.includes("in room") ||
+            configName.includes("room dining") ||
+            configName.includes("room service") ||
+            configName === "ird" ||
+            presetName.includes("room") ||
+            presetName.includes("ird") ||
+            floorName.includes("room") ||
+            floorName.includes("ird") ||
+            tableName.startsWith("room") ||
+            tableName.startsWith("ird")
+        );
+
+        if (isIRD) {
+            return {
+                prefix: "IRD",
+                digits: 4,
+                outletName: "IN ROOM DINING",
+            };
+        }
+
+        let prefix = customPrefix;
+        if (!prefix) {
+            const raw = String(config.name || "").trim();
+            const lower = raw.toLowerCase();
+            if (lower === "areca" || lower === "arica") {
+                prefix = "ARC";
+            } else {
+                const words = raw.match(/[A-Za-z0-9]+/g) || [];
+                if (words.length >= 2) {
+                    prefix = words.map(w => w[0].toUpperCase()).join("").substring(0, 5);
+                } else if (words.length === 1) {
+                    const w = words[0].toUpperCase();
+                    prefix = w.length >= 3 ? w.substring(0, 3) : w.padEnd(3, "X");
+                } else {
+                    prefix = "POS";
+                }
+            }
+        }
+
+        const digits = prefix.length <= 2 ? 3 : (prefix === "IRD" ? 4 : 5);
+        return {
+            prefix: prefix,
+            digits: digits,
+            outletName: (config.name || prefix).toUpperCase(),
+        };
+    },
+
     get tableNumberFormatted() {
         const table = this.order.table_id || this.order.self_ordering_table_id || this.order.table;
         if (!table) {
+            if (this.outletBillInfo.prefix === "TA") {
+                return "TA";
+            }
+            if (this.outletBillInfo.prefix === "IRD") {
+                return "ROOM";
+            }
             return "TA15";
         }
         const val = table.table_number !== undefined && table.table_number !== null && table.table_number !== ""
@@ -103,15 +196,25 @@ patch(OrderReceipt.prototype, {
     },
 
     get billNumberFormatted() {
+        if (this.order.custom_bill_number) {
+            return this.order.custom_bill_number;
+        }
+        const info = this.outletBillInfo;
         const ref = this.order.pos_reference || this.order.name || "";
         const m = ref.match(/(\d+)$/);
+        let num = 1;
         if (m) {
-            return `ARC${m[1].padStart(3, "0")}`;
+            num = parseInt(m[1], 10) || 1;
+        } else if (this.order.tracking_number) {
+            num = parseInt(this.order.tracking_number, 10) || 1;
+        } else if (this.order.sequence_number) {
+            num = parseInt(this.order.sequence_number, 10) || 1;
         }
-        if (this.order.tracking_number) {
-            return `ARC${String(this.order.tracking_number).padStart(3, "0")}`;
+        const billNum = `${info.prefix}${String(num).padStart(info.digits, "0")}`;
+        if (!this.order.custom_bill_number) {
+            this.order.custom_bill_number = billNum;
         }
-        return "ARC001";
+        return billNum;
     },
 
     get billDateFormatted() {
@@ -309,9 +412,9 @@ patch(OrderReceipt.prototype, {
             return this.order.uiState?.discount_reason || this.order.discount_reason;
         }
         const lines = this.allOrderlines;
-        const globalDiscLine = lines.find(l => 
-            l.isDiscountLine || 
-            l.uiState?.isDiscountLine || 
+        const globalDiscLine = lines.find(l =>
+            l.isDiscountLine ||
+            l.uiState?.isDiscountLine ||
             (typeof l.get_unit_price === "function" ? l.get_unit_price() < 0 : (l.price_unit < 0))
         );
         if (globalDiscLine) {
@@ -331,7 +434,7 @@ patch(OrderReceipt.prototype, {
         const lines = this.allOrderlines;
         let label = "Discount";
         const reason = this.discountReason;
-        
+
         // 1. Stored discount percentage on order
         const storedPct = this.order.uiState?.discount_percentage || this.order.discount_percentage;
         if (storedPct) {
@@ -359,7 +462,7 @@ patch(OrderReceipt.prototype, {
                         pctFound = true;
                     }
                 }
-                
+
                 // 4. Fallback: Compute percentage directly from discountAmount vs subtotalAmount
                 if (!pctFound && this.subtotalAmount > 0 && this.discountAmount > 0) {
                     const calculatedPct = (this.discountAmount / this.subtotalAmount) * 100;
@@ -441,7 +544,7 @@ patch(OrderReceipt.prototype, {
             const isNc = rawName.toLowerCase().includes("no charge") || rawName.toLowerCase().includes("(nc)") || rawName.toLowerCase() === "nc" || !!p.nc_reason;
             const isCash = Boolean(p.payment_method_id?.is_cash_count || rawName.toLowerCase().includes("cash"));
             const reason = p.nc_reason || (isNc ? this.ncReason : "");
-            
+
             let amount = 0;
             if (isNc) {
                 amount = 0;

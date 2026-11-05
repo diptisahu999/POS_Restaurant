@@ -17,7 +17,7 @@
                     <div class="bill-state">State: GUJARAT</div>
 
                     <div class="bill-doc-title text-uppercase">TAX INVOICE</div>
-                    <div class="bill-doc-subtitle text-uppercase">ARICA</div>
+                    <div class="bill-doc-subtitle text-uppercase"><t t-esc="outletBillInfo.outletName"/></div>
                 </div>
 
                 <div class="bill-divider"/>
