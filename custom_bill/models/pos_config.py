@@ -128,6 +128,11 @@ class PosConfig(models.Model):
         help='Display a dynamic UPI QR Code on restaurant bills and receipts for instant scanning and payment'
     )
 
+    @api.constrains('payment_method_ids')
+    def _check_payment_method_ids_journal(self):
+        # Allow sharing cash payment methods across multiple POS shops without validation error on register open
+        pass
+
     @api.model
     def _load_pos_data_fields(self, config_id):
         try:
