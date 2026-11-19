@@ -6,6 +6,9 @@
         <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('o_settings_container')]" position="inside">
+                <setting id="custom_bill_prefix_setting" string="Bill Number Prefix" help="Prefix used for Bill Numbers on customer receipts and reports (e.g. ARC, DDL, TA, IRD)">
+                    <field name="bill_prefix" placeholder="e.g. ARC, DDL, TA, IRD"/>
+                </setting>
                 <setting id="custom_bill_upi_setting" string="UPI QR Code on Bill" help="Display a dynamic UPI QR code on restaurant bills and receipts for instant scanning and payment">
                     <field name="show_upi_qr_on_bill"/>
                     <div class="content-group mt-2" invisible="not show_upi_qr_on_bill">

@@ -61,7 +61,7 @@
                             TAX INVOICE
                         </div>
                         <div style="font-weight: bold; font-size: 11px; text-transform: uppercase;">
-                            <t t-esc="doc.config_id.name or 'ARICA'"/>
+                            <t t-esc="doc.config_id.name or 'ARECA'"/>
                         </div>
                     </div>
 
