@@ -22,6 +22,35 @@ NC_ICON_SVG = base64.b64encode(b'''<svg xmlns="http://www.w3.org/2000/svg" viewB
 </svg>''').decode('ascii')
 
 
+def _setup_custom_bill_pos_configs(env):
+    """Ensure all POS configs have their appropriate bill_prefix and bill printing configured."""
+    for config in env['pos.config'].search([]):
+        vals = {}
+        if not config.bill_prefix:
+            cname = (config.name or '').upper()
+            if 'ARECA' in cname or 'ARICA' in cname:
+                prefix = 'ARC'
+            elif 'DELIGHT' in cname or 'DDL' in cname:
+                prefix = 'DDL'
+            elif 'TAKE' in cname or 'AWAY' in cname:
+                prefix = 'TA'
+            elif 'ROOM' in cname or 'IRD' in cname or 'DINING' in cname:
+                prefix = 'IRD'
+            else:
+                words = [w for w in cname.split() if w]
+                prefix = ''.join(w[0] for w in words)[:3] if words else 'ARC'
+            vals['bill_prefix'] = prefix
+        if hasattr(config, 'iface_printbill') and not config.iface_printbill:
+            vals['iface_printbill'] = True
+        if hasattr(config, 'iface_splitbill') and not config.iface_splitbill:
+            vals['iface_splitbill'] = True
+        if vals:
+            try:
+                config.write(vals)
+            except Exception:
+                pass
+
+
 def _setup_custom_bill_payment_methods(env):
     """Creates/updates default payment methods and assigns them to POS configs, ensuring Cash is available on all shops."""
     company = env.company
@@ -117,6 +146,10 @@ class PosPaymentMethod(models.Model):
 class PosConfig(models.Model):
     _inherit = 'pos.config'
 
+    bill_prefix = fields.Char(
+        string='Bill Prefix',
+        help='Prefix for Bill Number on receipts and reports (e.g. ARC for Areca, DDL for Daily Delight Cafe, TA for Take Away, IRD for In Room Dining)'
+    )
     upi_id = fields.Char(
         string='UPI ID / VPA',
         default='merchant@upi',
@@ -137,6 +170,10 @@ class PosConfig(models.Model):
     def _load_pos_data_fields(self, config_id):
         try:
             _setup_custom_bill_payment_methods(self.env)
+            _setup_custom_bill_pos_configs(self.env)
         except Exception as e:
-            _logger.warning("Could not auto-setup payment methods: %s", e)
-        return super()._load_pos_data_fields(config_id)
+            _logger.warning("Could not auto-setup payment methods or pos configs: %s", e)
+        res = super()._load_pos_data_fields(config_id)
+        if res and 'bill_prefix' not in res:
+            res.append('bill_prefix')
+        return res

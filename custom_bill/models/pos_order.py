@@ -104,16 +104,42 @@ class PosOrder(models.Model):
                 pass
         return self.env.ref('custom_bill.action_report_pos_order_bill').report_action(self)
 
+    def _get_bill_prefix(self):
+        self.ensure_one()
+        if self.config_id and getattr(self.config_id, 'bill_prefix', False):
+            return self.config_id.bill_prefix.strip().upper()
+        config_name = (self.config_id.name or '').upper() if self.config_id else ''
+        if 'ARECA' in config_name or 'ARICA' in config_name:
+            return 'ARC'
+        if 'DELIGHT' in config_name or 'DDL' in config_name or 'DAY DELIGHT' in config_name:
+            return 'DDL'
+        if 'TAKE' in config_name or 'AWAY' in config_name:
+            return 'TA'
+        if 'ROOM' in config_name or 'IRD' in config_name or 'DINING' in config_name:
+            return 'IRD'
+        words = [w for w in config_name.split() if w]
+        if words:
+            return ''.join(w[0] for w in words)[:3] or 'ARC'
+        return 'ARC'
+
     def _get_bill_number_formatted(self):
         self.ensure_one()
+        prefix = self._get_bill_prefix()
         ref = self.pos_reference or self.name or ""
         import re
         m = re.search(r'(\d+)$', ref)
         if m:
-            return f"ARC{m.group(1).zfill(6)}"
+            return f"{prefix}{m.group(1).zfill(6)}"
         if self.tracking_number:
-            return f"ARC{str(self.tracking_number).zfill(6)}"
-        return f"ARC{str(self.id).zfill(6)}"
+            return f"{prefix}{str(self.tracking_number).zfill(6)}"
+        if self.sequence_number:
+            return f"{prefix}{str(self.sequence_number).zfill(6)}"
+        return f"{prefix}{str(self.id).zfill(6)}"
+
+    def _compute_order_name(self, session=None):
+        if hasattr(self, 'refunded_order_id') and self.refunded_order_id and self.refunded_order_id.exists():
+            return f"{self.refunded_order_id.name} REFUND"
+        return self._get_bill_number_formatted()
 
     def _get_order_number_formatted(self):
         self.ensure_one()
@@ -141,6 +167,8 @@ class PosOrder(models.Model):
 
     def _get_table_number_formatted(self):
         self.ensure_one()
+        if hasattr(self, 'room_number') and self.room_number:
+            return f"R-{self.room_number}"
         if self.table_id:
             val = str(self.table_id.table_number) if self.table_id.table_number is not False else (self.table_id.name or '')
             if val.isdigit():
@@ -151,6 +179,11 @@ class PosOrder(models.Model):
             if val.isdigit():
                 return f"T-{val.zfill(2)}"
             return val
+        config_name = (self.config_id.name or '').upper() if self.config_id else ''
+        if 'TAKE' in config_name or 'AWAY' in config_name:
+            return "TAKEAWAY"
+        if 'ROOM' in config_name or 'IRD' in config_name or 'DINING' in config_name:
+            return "ROOM"
         return "COUNTER"
 
     def _get_amount_in_words(self):

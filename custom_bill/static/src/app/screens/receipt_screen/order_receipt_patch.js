@@ -75,10 +75,54 @@ patch(OrderReceipt.prototype, {
         return true;
     },
 
+    get currentConfig() {
+        return this.order?.config || this.order?.config_id || this.env?.services?.pos?.config || {};
+    },
+
+    get posConfigName() {
+        const config = this.currentConfig;
+        return (config.name || "ARECA").toUpperCase();
+    },
+
+    get billPrefix() {
+        const config = this.currentConfig;
+        if (config.bill_prefix) {
+            return String(config.bill_prefix).trim().toUpperCase();
+        }
+        const name = String(config.name || "").toUpperCase();
+        if (name.includes("ARECA") || name.includes("ARICA")) {
+            return "ARC";
+        }
+        if (name.includes("DELIGHT") || name.includes("DDL") || name.includes("DAY DELIGHT")) {
+            return "DDL";
+        }
+        if (name.includes("TAKE") || name.includes("AWAY")) {
+            return "TA";
+        }
+        if (name.includes("ROOM") || name.includes("IRD") || name.includes("DINING")) {
+            return "IRD";
+        }
+        const words = name.split(/\s+/).filter(Boolean);
+        if (words.length > 0) {
+            return words.map(w => w[0]).join("").slice(0, 3) || "ARC";
+        }
+        return "ARC";
+    },
+
     get tableNumberFormatted() {
+        if (this.order.room_number) {
+            return `R-${this.order.room_number}`;
+        }
         const table = this.order.table_id || this.order.self_ordering_table_id || this.order.table;
         if (!table) {
-            return "TA15";
+            const configName = (this.currentConfig.name || "").toUpperCase();
+            if (configName.includes("TAKE") || configName.includes("AWAY")) {
+                return "TAKEAWAY";
+            }
+            if (configName.includes("ROOM") || configName.includes("IRD") || configName.includes("DINING")) {
+                return "ROOM";
+            }
+            return "COUNTER";
         }
         const val = table.table_number !== undefined && table.table_number !== null && table.table_number !== ""
             ? String(table.table_number).trim()
@@ -87,7 +131,7 @@ patch(OrderReceipt.prototype, {
         if (/^\d+$/.test(val)) {
             return `T-${val.padStart(2, "0")}`;
         }
-        return val || "TA15";
+        return val || "COUNTER";
     },
 
     get stewardNameFormatted() {
@@ -103,15 +147,19 @@ patch(OrderReceipt.prototype, {
     },
 
     get billNumberFormatted() {
+        const prefix = this.billPrefix;
         const ref = this.order.pos_reference || this.order.name || "";
         const m = ref.match(/(\d+)$/);
         if (m) {
-            return `ARC${m[1].padStart(3, "0")}`;
+            return `${prefix}${m[1].padStart(6, "0")}`;
         }
         if (this.order.tracking_number) {
-            return `ARC${String(this.order.tracking_number).padStart(3, "0")}`;
+            return `${prefix}${String(this.order.tracking_number).padStart(6, "0")}`;
         }
-        return "ARC001";
+        if (this.order.sequence_number) {
+            return `${prefix}${String(this.order.sequence_number).padStart(6, "0")}`;
+        }
+        return `${prefix}000001`;
     },
 
     get billDateFormatted() {
