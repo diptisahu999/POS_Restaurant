@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_pos_outlet_force_delete_wizard_user,pos.outlet.force.delete.wizard.user,model_custom_pos_outlet_force_delete_wizard,base.group_user,1,1,1,1
+access_pos_outlet_force_delete,pos.outlet.force.delete,point_of_sale.model_pos_config,custom_pos_outlet_delete.group_allow_force_delete_pos_outlet,1,1,1,1

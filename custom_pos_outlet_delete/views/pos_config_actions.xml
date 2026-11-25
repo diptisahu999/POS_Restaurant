@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action: appears in Action menu on POS Outlet (pos.config) list and form -->
+    <record id="action_server_force_delete_pos_outlet" model="ir.actions.server">
+        <field name="name">Force Delete</field>
+        <field name="model_id" ref="point_of_sale.model_pos_config"/>
+        <field name="binding_model_id" ref="point_of_sale.model_pos_config"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="group_ids" eval="[(4, ref('custom_pos_outlet_delete.group_allow_force_delete_pos_outlet'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_force_delete()
+        </field>
+    </record>
+
+    <!-- Force Delete button in pos.config form view header -->
+    <record id="pos_config_form_view_inherit_force_delete" model="ir.ui.view">
+        <field name="name">pos.config.form.inherit.outlet.force.delete</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_force_delete"
+                            string="Force Delete"
+                            type="object"
+                            class="btn-danger"
+                            groups="custom_pos_outlet_delete.group_allow_force_delete_pos_outlet"/>
+                </header>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Force Delete option in POS Dashboard kanban card menu -->
+    <record id="pos_config_kanban_view_inherit_force_delete" model="ir.ui.view">
+        <field name="name">pos.config.kanban.inherit.outlet.force.delete</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_config_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//a[@name='action_pos_config_modal_edit']/.." position="after">
+                <div role="menuitem" class="col-12 align-items-center mt-1" groups="custom_pos_outlet_delete.group_allow_force_delete_pos_outlet">
+                    <a name="action_force_delete" class="text-center text-danger fw-bold" type="object">Force Delete</a>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
