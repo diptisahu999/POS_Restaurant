@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Action for Enhanced Payment Details List & Form -->
+    <record id="action_pos_transaction_details" model="ir.actions.act_window">
+        <field name="name">Payment Details</field>
+        <field name="res_model">pos.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{
+            'search_default_group_by_payment_method': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No transactions recorded for the selected criteria.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Items in Point of Sale -->
+    <!-- Under Orders menu: Payment Details -->
+    <menuitem id="menu_pos_transaction_details_orders"
+              name="Payment Details"
+              parent="point_of_sale.menu_point_of_sale"
+              action="action_pos_transaction_details"
+              sequence="30"/>
+
+    <!-- Under Reporting menu: Transaction & Food Audit Report -->
+    <menuitem id="menu_pos_transaction_audit_report"
+              name="Transaction &amp; Food Audit"
+              parent="point_of_sale.menu_point_rep"
+              action="action_pos_transaction_wizard"
+              sequence="25"/>
+</odoo>
