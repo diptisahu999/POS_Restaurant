@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_transaction_wizard_form" model="ir.ui.view">
+        <field name="name">pos.transaction.wizard.form</field>
+        <field name="model">pos.transaction.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Payment Details &amp; Food Audit">
+                <div class="alert alert-info d-flex align-items-center mb-3" role="status">
+                    <i class="fa fa-info-circle fa-2x me-3 text-info"/>
+                    <div>
+                        <strong class="fs-6">Transaction Audit: Connected Bills, Food Served, Split Payments &amp; NC Reasons</strong>
+                        <div class="text-muted small">
+                            Filter transactions to see connected bill numbers, items served, multi-tender split combinations, and complimentary reasons.
+                        </div>
+                    </div>
+                </div>
+
+                <sheet>
+                    <group>
+                        <group string="Period Selection">
+                            <field name="date_preset" widget="radio" options="{'horizontal': true}"/>
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                        </group>
+                        <group string="Scope &amp; Tenders">
+                            <field name="pos_config_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="All POS Outlets..."/>
+                            <field name="payment_method_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="All Payment Methods..."/>
+                        </group>
+                    </group>
+
+                    <group string="Special Transaction Filters">
+                        <group>
+                            <field name="only_split_payments" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="only_nc_payments" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                </sheet>
+
+                <footer>
+                    <button name="action_view_transactions" string="View On-Screen Transactions" type="object" class="btn-primary" icon="fa-list-ul" data-hotkey="q"/>
+                    <button name="action_export_excel" string="Download Audit Excel" type="object" class="btn-success" icon="fa-file-excel-o" data-hotkey="w"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pos_transaction_wizard" model="ir.actions.act_window">
+        <field name="name">Transaction &amp; Food Audit</field>
+        <field name="res_model">pos.transaction.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
