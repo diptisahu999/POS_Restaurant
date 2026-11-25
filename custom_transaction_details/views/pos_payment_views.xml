@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Enhanced Payments List View -->
+    <record id="view_pos_payment_tree_inherit_transactions" model="ir.ui.view">
+        <field name="name">pos.payment.list.inherit.transactions</field>
+        <field name="model">pos.payment</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_payment_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_order_id']" position="after">
+                <field name="bill_number" string="Bill No" optional="show" decoration-bf="1"/>
+                <field name="pos_config_id" string="POS Outlet" optional="show"/>
+                <field name="table_label" string="Table" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='amount']" position="after">
+                <field name="order_amount_total" string="Order Total" optional="hide"/>
+                <field name="food_served_summary" string="Food Served" optional="show"/>
+                <field name="other_payments_display" string="Split / Other Tenders" optional="show"
+                       decoration-warning="is_split_payment" decoration-info="not is_split_payment"/>
+                <field name="nc_reason" string="NC Reason" optional="show"
+                       widget="badge" decoration-warning="is_nc_payment and nc_reason"/>
+                <field name="is_split_payment" column_invisible="True"/>
+                <field name="is_nc_payment" column_invisible="True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Enhanced Payments Form View -->
+    <record id="view_pos_payment_form_inherit_transactions" model="ir.ui.view">
+        <field name="name">pos.payment.form.inherit.transactions</field>
+        <field name="model">pos.payment</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <!-- Split Payment Alert Banner -->
+                <div class="alert alert-warning d-flex align-items-center mb-2" role="alert" invisible="not is_split_payment">
+                    <i class="fa fa-pie-chart fa-2x me-3 text-warning"/>
+                    <div>
+                        <strong>Split / Multi-Tender Payment Alert</strong>
+                        <div>
+                            This transaction is part of a split-settled bill (Order Total: <field name="order_amount_total" class="d-inline fw-bold"/>).
+                            <field name="other_payments_display" class="d-inline text-muted ms-1"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Charge (NC) Alert Banner -->
+                <div class="alert alert-info d-flex align-items-center mb-2" role="alert" invisible="not is_nc_payment">
+                    <i class="fa fa-gift fa-2x me-3 text-info"/>
+                    <div>
+                        <strong>No Charge (NC) / Complimentary Settlement</strong>
+                        <div>
+                            Operational Reason: <strong class="text-primary"><field name="nc_reason" class="d-inline"/></strong>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+
+            <xpath expr="//sheet/group" position="replace">
+                <group>
+                    <group string="Transaction &amp; Connected Bill">
+                        <field name="pos_order_id" string="Order Reference"/>
+                        <field name="bill_number" string="Bill Number" decoration-bf="1"/>
+                        <field name="pos_config_id" string="Point of Sale Outlet"/>
+                        <field name="table_label" string="Table"/>
+                        <field name="partner_id" string="Customer"/>
+                        <field name="cashier_name" string="Cashier / Steward"/>
+                        <field name="payment_date" string="Date &amp; Time"/>
+                        <field name="session_id" readonly="1"/>
+                    </group>
+                    <group string="Payment &amp; Split Breakdown">
+                        <field name="payment_method_id" string="This Payment Method"/>
+                        <field name="amount" widget="monetary" string="This Payment Amount" class="oe_subtotal_footer_separator text-primary fs-5"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="order_amount_total" widget="monetary" string="Full Order Total"/>
+                        <field name="payment_ratio" widget="percentage" string="Share of Total Bill"/>
+                        <field name="is_split_payment" widget="boolean_toggle" readonly="1"/>
+                        <field name="other_payments_display" string="Other Tenders Involved" invisible="not is_split_payment"/>
+                        <field name="is_nc_payment" invisible="1"/>
+                        <field name="nc_reason" string="NC / Complimentary Reason" invisible="not is_nc_payment and not nc_reason" class="fw-bold"/>
+                    </group>
+                </group>
+
+                <!-- Detailed Breakdown Notebook -->
+                <notebook>
+                    <page string="Food Served / Ordered Items" icon="fa-cutlery">
+                        <field name="order_line_ids" readonly="1">
+                            <list string="Food Served" create="0" delete="0">
+                                <field name="product_id" string="Product / Dish"/>
+                                <field name="qty" string="Qty"/>
+                                <field name="product_uom_id" string="UoM" optional="show"/>
+                                <field name="price_unit" string="Unit Price" widget="monetary"/>
+                                <field name="discount" string="Disc. %" optional="show"/>
+                                <field name="price_subtotal" string="Subtotal (Excl Tax)" widget="monetary"/>
+                                <field name="price_subtotal_incl" string="Total (Incl Tax)" widget="monetary"/>
+                            </list>
+                        </field>
+                    </page>
+
+                    <page string="All Payments on This Bill (Split Breakdown)" icon="fa-money" invisible="not is_split_payment">
+                        <div class="alert alert-light border mb-2 small text-muted">
+                            Complete record of all payment transactions combined to settle this bill:
+                        </div>
+                        <field name="other_payment_ids" readonly="1">
+                            <list string="Other Payments" create="0" delete="0">
+                                <field name="payment_date" string="Date"/>
+                                <field name="payment_method_id" string="Payment Method"/>
+                                <field name="amount" string="Amount" widget="monetary"/>
+                                <field name="nc_reason" string="NC Reason" optional="show"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Enhanced Payments Search View -->
+    <record id="view_pos_payment_search_inherit_transactions" model="ir.ui.view">
+        <field name="name">pos.payment.search.inherit.transactions</field>
+        <field name="model">pos.payment</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_payment_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='group_by_payment_method']" position="after">
+                <filter string="Point of Sale (POS)" name="group_by_pos_config" context="{'group_by': 'pos_config_id'}"/>
+                <filter string="Bill Number" name="group_by_bill_number" context="{'group_by': 'bill_number'}"/>
+                <filter string="Table" name="group_by_table" context="{'group_by': 'table_id'}"/>
+                <filter string="NC Reason" name="group_by_nc_reason" context="{'group_by': 'nc_reason'}"/>
+            </xpath>
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Split / Multi-Tender Payments" name="filter_split_payments" domain="[('is_split_payment', '=', True)]"/>
+                <filter string="No Charge (NC) Payments" name="filter_nc_payments" domain="[('is_nc_payment', '=', True)]"/>
+                <filter string="Has NC Reason" name="filter_has_nc_reason" domain="[('nc_reason', '!=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
