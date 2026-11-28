@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="designation_fb_manager" model="pos.designation">
+        <field name="name">F&amp;B Manager</field>
+        <field name="allow_create_pos_order">True</field>
+    </record>
+    <record id="designation_executive" model="pos.designation">
+        <field name="name">Executive</field>
+        <field name="allow_create_pos_order">True</field>
+    </record>
+    <record id="designation_captain" model="pos.designation">
+        <field name="name">Captain</field>
+        <field name="allow_create_pos_order">False</field>
+    </record>
+    <record id="designation_associate" model="pos.designation">
+        <field name="name">Associate</field>
+        <field name="allow_create_pos_order">False</field>
+    </record>
+    <record id="designation_accounts_associate" model="pos.designation">
+        <field name="name">Accounts Associates</field>
+        <field name="allow_create_pos_order">False</field>
+    </record>
+</odoo>

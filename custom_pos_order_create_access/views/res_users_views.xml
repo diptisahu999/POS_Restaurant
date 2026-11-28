@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_pos_order_create_access" model="ir.ui.view">
+        <field name="name">res.users.form.pos.order.create.access</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <separator string="POS Order Creation Permissions"/>
+                <group name="pos_order_create_access_group">
+                    <group>
+                        <field name="pos_designation_id"
+                               string="Designation"
+                               options="{'no_quick_create': False, 'no_create_edit': False}"/>
+                    </group>
+                    <group>
+                        <field name="has_create_pos_order_access"
+                               string="Allow Create POS Orders"
+                               widget="boolean_toggle"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
