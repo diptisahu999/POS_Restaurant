@@ -11,7 +11,10 @@ patch(ProductScreen.prototype, {
         }
 
         // 1. Call parent customSendToKitchen to handle remarks popup and server sync
-        await super.customSendToKitchen(...arguments);
+        const sendResult = await super.customSendToKitchen(...arguments);
+        if (sendResult === false) {
+            return false;
+        }
 
         // 2. Fetch the latest kitchen round (delta items + category printer URLs) from backend
         const identifier = order.uuid || order.server_id || order.id || order.name || order.pos_reference;
