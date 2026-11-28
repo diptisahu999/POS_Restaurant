@@ -42,16 +42,112 @@
         </field>
     </record>
 
-    <!-- 4. Filter by Allowed PoS Outlet in Search View -->
+    <record id="product_template_tree_view_pos_inherit_category_show" model="ir.ui.view">
+        <field name="name">product.template.tree.pos.inherit.category.show</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_tree_view_point_of_sale"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_categ_ids']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_product_tree_view_inherit_pos_outlet" model="ir.ui.view">
+        <field name="name">product.product.tree.inherit.pos.outlet</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="point_of_sale.product_product_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_categ_ids']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+            <field name="pos_categ_ids" position="after">
+                <field name="pos_config_ids" widget="many2many_tags" groups="point_of_sale.group_pos_user" optional="show" string="Allowed PoS Outlets"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- 4. Filter and Group By Allowed PoS Outlet in Search View -->
     <record id="product_template_search_view_inherit_pos_outlet" model="ir.ui.view">
         <field name="name">product.template.search.inherit.pos.outlet</field>
         <field name="model">product.template</field>
         <field name="inherit_id" ref="point_of_sale.product_template_search_view_pos"/>
         <field name="arch" type="xml">
             <field name="pos_categ_ids" position="after">
-                <field name="pos_config_ids" string="PoS Outlet"/>
+                <field name="pos_config_ids"
+                       string="PoS Outlet"
+                       filter_domain="['|', ('pos_config_ids', '=', False), ('pos_config_ids', 'ilike', self)]"/>
             </field>
+            <filter name="filter_to_availabe_pos" position="after">
+                <filter string="All PoS Outlets (Unrestricted)"
+                        name="filter_all_pos_outlets"
+                        domain="[('pos_config_ids', '=', False)]"/>
+                <filter string="Outlet-Specific Products"
+                        name="filter_specific_pos_outlets"
+                        domain="[('pos_config_ids', '!=', False)]"/>
+            </filter>
+            <xpath expr="//group//filter[@name='pos_categ_ids']" position="before">
+                <filter string="PoS Outlet"
+                        name="group_by_pos_config_ids"
+                        context="{'group_by': 'pos_config_ids'}"/>
+            </xpath>
         </field>
     </record>
-</odoo>
 
+    <!-- 5. Dedicated PoS Outlet + Category Search Panel for PoS Product Views -->
+    <record id="product_template_search_view_pos_panel" model="ir.ui.view">
+        <field name="name">product.template.search.pos.panel</field>
+        <field name="model">product.template</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_search_view_pos"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <searchpanel view_types="kanban,list">
+                    <field name="pos_config_ids"
+                           string="PoS Outlets"
+                           select="multi"
+                           expand="1"
+                           icon="fa-cutlery"
+                           enable_counters="1"/>
+                    <field name="pos_categ_ids"
+                           string="POS Categories"
+                           select="multi"
+                           icon="fa-tags"
+                           enable_counters="1"/>
+                </searchpanel>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_product_search_view_pos_panel" model="ir.ui.view">
+        <field name="name">product.product.search.pos.panel</field>
+        <field name="model">product.product</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="product.product_search_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <searchpanel view_types="kanban,list">
+                    <field name="pos_config_ids"
+                           string="PoS Outlets"
+                           select="multi"
+                           expand="1"
+                           icon="fa-cutlery"
+                           enable_counters="1"/>
+                    <field name="pos_categ_ids"
+                           string="POS Categories"
+                           select="multi"
+                           icon="fa-tags"
+                           enable_counters="1"/>
+                </searchpanel>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="point_of_sale.product_template_action_pos_product" model="ir.actions.act_window">
+        <field name="search_view_id" ref="custom_pos.product_template_search_view_pos_panel"/>
+    </record>
+
+    <record id="point_of_sale.product_product_action" model="ir.actions.act_window">
+        <field name="search_view_id" ref="custom_pos.product_product_search_view_pos_panel"/>
+    </record>
+</odoo>
