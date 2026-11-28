@@ -54,9 +54,9 @@ patch(ProductCard.prototype, {
             ev.preventDefault();
         }
         const lines = this.getOrderLines();
-        if (lines.length > 0) {
-            const lastLine = lines.at(-1);
-            lastLine.setQuantity(lastLine.qty + 1);
+        const unsentLine = lines.filter((l) => !l.is_sent_to_kitchen).at(-1);
+        if (unsentLine) {
+            unsentLine.setQuantity(Math.max(0, unsentLine.qty || 0) + 1);
         } else {
             if (typeof this.props.onClick === "function") {
                 this.props.onClick(ev);
@@ -79,11 +79,15 @@ patch(ProductCard.prototype, {
         if (!lines.length) {
             return;
         }
-        const lastLine = lines.at(-1);
-        if (lastLine.qty > 1) {
-            lastLine.setQuantity(lastLine.qty - 1);
+        const unsentLine = lines.filter((l) => !l.is_sent_to_kitchen).at(-1);
+        if (!unsentLine) {
+            order.removeOrderline(lines.at(-1));
+            return;
+        }
+        if (unsentLine.qty > 1) {
+            unsentLine.setQuantity(unsentLine.qty - 1);
         } else {
-            order.removeOrderline(lastLine);
+            order.removeOrderline(unsentLine);
         }
     },
 });

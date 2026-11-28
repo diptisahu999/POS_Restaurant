@@ -319,7 +319,8 @@ patch(ProductScreen.prototype, {
 
     getNumpadButtons() {
         const buttons = super.getNumpadButtons();
-        if (this.pos.numpadMode === "quantity") {
+        const isRefund = Boolean(this.currentOrder?.isRefund || this.currentOrder?.preset_id?.is_return);
+        if (!isRefund && this.pos.numpadMode === "quantity") {
             return buttons.map((b) => {
                 if (b.value === "-" || b.value === "+/-" || (SWITCHSIGN && b.value === SWITCHSIGN.value)) {
                     return { ...b, disabled: true };
@@ -338,7 +339,8 @@ patch(ProductScreen.prototype, {
                 body: _t("This item has already been sent to the kitchen and cannot be modified or deleted. To order more, please select the item from the catalog to add a new reorder."),
             });
         }
-        if ((buttonValue === "-" || buttonValue === "+/-" || (SWITCHSIGN && buttonValue === SWITCHSIGN.value)) && this.pos.numpadMode === "quantity") {
+        const isRefund = Boolean(this.currentOrder?.isRefund || this.currentOrder?.preset_id?.is_return || selectedLine?.refunded_orderline_id);
+        if (!isRefund && (buttonValue === "-" || buttonValue === "+/-" || (SWITCHSIGN && buttonValue === SWITCHSIGN.value)) && this.pos.numpadMode === "quantity") {
             return this.dialog.add(AlertDialog, {
                 title: _t("Negative quantity not allowed"),
                 body: _t("The quantity of the product cannot be negative."),
