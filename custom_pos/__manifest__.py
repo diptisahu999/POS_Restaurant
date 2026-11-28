@@ -21,7 +21,10 @@
     ],
     'assets': {
         'point_of_sale._assets_pos': [
-            'custom_pos/static/src/**/*',
+            'custom_pos/static/src/app/**/*',
+        ],
+        'web.assets_backend': [
+            'custom_pos/static/src/backend/**/*',
         ],
     },
     'installable': True,
