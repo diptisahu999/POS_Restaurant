@@ -10,6 +10,7 @@ import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
+import { ensureOrderTotalNonNegative } from "@pos_custom_kitchen/app/negative_order_popup";
 
 patch(OrderDisplay.prototype, {
     get comboSortedLines() {
@@ -167,6 +168,15 @@ patch(OrderSummary.prototype, {
 
 patch(ControlButtons.prototype, {
     async clickPrintBill() {
+        const canProceed = await ensureOrderTotalNonNegative({
+            order: this.currentOrder,
+            pos: this.pos,
+            dialog: this.dialog,
+            actionLabel: _t("Print Bill"),
+        });
+        if (!canProceed) {
+            return false;
+        }
         if (this.currentOrder) {
             this.currentOrder.bill_printed = true;
             if (this.currentOrder.isSynced) {
@@ -178,8 +188,45 @@ patch(ControlButtons.prototype, {
 });
 
 patch(PosStore.prototype, {
+    async pay() {
+        const order = this.getOrder();
+        const canProceed = await ensureOrderTotalNonNegative({
+            order,
+            pos: this,
+            dialog: this.dialog || this.env?.services?.dialog,
+            actionLabel: _t("Proceed to Payment"),
+        });
+        if (!canProceed) {
+            return false;
+        }
+        return await super.pay(...arguments);
+    },
+
+    async submitOrder() {
+        const order = this.getOrder();
+        const canProceed = await ensureOrderTotalNonNegative({
+            order,
+            pos: this,
+            dialog: this.dialog || this.env?.services?.dialog,
+            actionLabel: _t("Send to Kitchen"),
+        });
+        if (!canProceed) {
+            return false;
+        }
+        return await super.submitOrder(...arguments);
+    },
+
     async printReceipt({ order = this.getOrder(), printBillActionTriggered = false } = {}) {
         if (printBillActionTriggered && order) {
+            const canProceed = await ensureOrderTotalNonNegative({
+                order,
+                pos: this,
+                dialog: this.dialog || this.env?.services?.dialog,
+                actionLabel: _t("Print Bill"),
+            });
+            if (!canProceed) {
+                return false;
+            }
             order.bill_printed = true;
             if (order.isSynced) {
                 this.data.write("pos.order", [order.id], { bill_printed: true });

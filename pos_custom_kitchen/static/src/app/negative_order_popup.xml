@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_custom_kitchen.NegativeOrderPopup">
+        <Dialog title="'Negative Item Check'" size="'md'">
+            <p class="mb-3">
+                <t t-if="currentTotal &lt; -0.005">
+                    The total bill is negative (<strong t-esc="formatCurrency(currentTotal)"/>). Please fix or remove the negative item(s) below before you <t t-esc="props.actionLabel"/>.
+                </t>
+                <t t-else="">
+                    One or more items have a negative amount. Please fix or remove them below before you <t t-esc="props.actionLabel"/>.
+                </t>
+            </p>
+
+            <div t-if="state.items.length" class="mb-3">
+                <t t-foreach="state.items" t-as="item" t-key="item.uuid">
+                    <div class="border-top py-2">
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <div>
+                                <span t-att-class="item.removed ? 'text-decoration-line-through text-muted' : 'fw-bold'">
+                                    <t t-esc="item.qty"/> x <t t-esc="item.name"/>
+                                </span>
+                                <span class="text-muted small ms-2" t-esc="item.issueLabel"/>
+                            </div>
+                            <div class="fw-bold ms-2">
+                                <t t-if="item.removed">Removed</t>
+                                <t t-else="" t-esc="formatCurrency(getItemDraftSubtotal(item))"/>
+                            </div>
+                        </div>
+
+                        <div t-if="!item.isLocked and !item.removed" class="row g-2 align-items-end">
+                            <div t-if="item.showQtyInput and !item.isDiscountLine" class="col-4 col-sm-2">
+                                <label class="form-label small mb-1">Qty</label>
+                                <input type="number"
+                                       class="form-control form-control-sm text-end"
+                                       min="0"
+                                       step="1"
+                                       t-att-value="item.qtyText"
+                                       t-on-input="(ev) => this.onQtyInput(item, ev)"/>
+                            </div>
+
+                            <div t-if="!item.isDiscountLine" class="col-6 col-sm-3">
+                                <label class="form-label small mb-1">Price</label>
+                                <input type="number"
+                                       class="form-control form-control-sm text-end"
+                                       min="0"
+                                       step="any"
+                                       t-att-value="item.priceText"
+                                       t-on-input="(ev) => this.onPriceInput(item, ev)"/>
+                            </div>
+
+                            <div t-if="!item.isDiscountLine" class="col-6 col-sm-2">
+                                <label class="form-label small mb-1">Disc %</label>
+                                <input type="number"
+                                       class="form-control form-control-sm text-end"
+                                       min="0"
+                                       max="100"
+                                       step="any"
+                                       t-att-value="item.discountText"
+                                       t-on-input="(ev) => this.onDiscountInput(item, ev)"/>
+                            </div>
+
+                            <div class="col text-end">
+                                <button t-if="!item.isDiscountLine and !isItemFixed(item)"
+                                        type="button"
+                                        class="btn btn-sm btn-secondary me-2"
+                                        t-on-click="() => this.fixItemPositive(item)">
+                                    Make Positive
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        t-on-click="() => this.toggleRemoveItem(item)">
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        <div t-if="!item.isLocked and item.removed" class="text-end">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    t-on-click="() => this.toggleRemoveItem(item)">
+                                Undo
+                            </button>
+                        </div>
+
+                        <div t-if="item.isLocked" class="text-muted small">
+                            Already sent to kitchen.
+                        </div>
+                    </div>
+                </t>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                <span class="text-muted">Updated Order Total</span>
+                <strong t-esc="formatCurrency(estimatedTotal)"/>
+            </div>
+
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-secondary" t-on-click="cancel">
+                    Cancel
+                </button>
+                <button t-if="!isReadyToProceed and hasAnyFixableItem"
+                        type="button"
+                        class="btn btn-secondary"
+                        t-on-click="fixAllAutomatically">
+                    Fix All
+                </button>
+                <button type="button"
+                        class="btn btn-primary"
+                        t-att-disabled="!isReadyToProceed"
+                        t-on-click="applyAndContinue">
+                    Apply &amp; Continue
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

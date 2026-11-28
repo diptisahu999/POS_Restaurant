@@ -4,6 +4,7 @@ import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { KitchenRemarksPopup } from "@pos_custom_kitchen/app/kitchen_remarks_popup";
+import { ensureOrderTotalNonNegative } from "@pos_custom_kitchen/app/negative_order_popup";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
 import { SWITCHSIGN } from "@point_of_sale/app/components/numpad/numpad";
@@ -103,7 +104,17 @@ patch(ProductScreen.prototype, {
     async customSendToKitchen() {
         const order = this.currentOrder;
         if (!order || order.isEmpty()) {
-            return;
+            return false;
+        }
+
+        const canProceed = await ensureOrderTotalNonNegative({
+            order,
+            pos: this.pos,
+            dialog: this.dialog,
+            actionLabel: _t("Send to Kitchen"),
+        });
+        if (!canProceed) {
+            return false;
         }
 
         // Get order lines - support both Odoo 17 and 18/19 API
