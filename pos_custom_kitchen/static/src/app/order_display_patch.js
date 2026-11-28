@@ -42,7 +42,10 @@ patch(PosOrderline.prototype, {
         if (this.is_sent_to_kitchen && this.qty !== undefined && this.qty !== 0) {
             const quant = typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
             if (quant !== this.qty) {
-                return false;
+                return {
+                    title: _t("Item Locked"),
+                    body: _t("This item has already been sent to the kitchen and cannot be modified or deleted. To order more, please select the item from the catalog to add a new reorder."),
+                };
             }
         }
         return super.setQuantity(...arguments);
@@ -97,6 +100,44 @@ patch(PosOrder.prototype, {
 });
 
 patch(OrderSummary.prototype, {
+    async updateSelectedOrderline({ buffer, key }) {
+        const order = this.currentOrder;
+        const selectedLine = order?.getSelectedOrderline();
+        if (selectedLine && selectedLine.is_sent_to_kitchen) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Item Locked"),
+                body: _t("This item has already been sent to the kitchen and cannot be modified or deleted. To order more, please select the item from the catalog to add a new reorder."),
+            });
+            this.numberBuffer.reset();
+            return;
+        }
+        const isRefund = Boolean(order?.isRefund || order?.preset_id?.is_return || selectedLine?.refunded_orderline_id);
+        const isNegativeAttempt = key === "-" || (typeof buffer === "string" && buffer.trim().startsWith("-"));
+        if (isNegativeAttempt && !isRefund && this.pos.numpadMode === "quantity") {
+            this.numberBuffer.reset();
+            this.dialog.add(AlertDialog, {
+                title: _t("Negative quantity not allowed"),
+                body: _t("The quantity of the product cannot be negative."),
+            });
+            return;
+        }
+        return await super.updateSelectedOrderline(...arguments);
+    },
+
+    async updateQuantityNumber(newQuantity) {
+        const order = this.currentOrder;
+        const selectedLine = order?.getSelectedOrderline();
+        const isRefund = Boolean(order?.isRefund || order?.preset_id?.is_return || selectedLine?.refunded_orderline_id);
+        if (!isRefund && newQuantity !== null && newQuantity < 0) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Negative quantity not allowed"),
+                body: _t("The quantity of the product cannot be negative."),
+            });
+            return false;
+        }
+        return await super.updateQuantityNumber(...arguments);
+    },
+
     _setValue(val) {
         const selectedLine = this.currentOrder?.getSelectedOrderline();
         if (selectedLine && selectedLine.is_sent_to_kitchen) {
@@ -106,6 +147,19 @@ patch(OrderSummary.prototype, {
             });
             this.numberBuffer.reset();
             return;
+        }
+        const isRefund = Boolean(this.currentOrder?.isRefund || this.currentOrder?.preset_id?.is_return || selectedLine?.refunded_orderline_id);
+        if (val !== "remove" && !isRefund && this.pos.numpadMode === "quantity") {
+            const strVal = String(val ?? "").trim();
+            const numVal = typeof val === "number" ? val : parseFloat(strVal.replace(",", "."));
+            if (strVal.startsWith("-") || (!Number.isNaN(numVal) && numVal < 0)) {
+                this.dialog.add(AlertDialog, {
+                    title: _t("Negative quantity not allowed"),
+                    body: _t("The quantity of the product cannot be negative."),
+                });
+                this.numberBuffer.reset();
+                return;
+            }
         }
         return super._setValue(...arguments);
     },
@@ -135,7 +189,8 @@ patch(PosStore.prototype, {
     },
 
     async addLineToOrder(vals, order, opts = {}, configure = true) {
-        if (!order?.preset_id?.is_return && vals && vals.qty < 0 && !opts.force) {
+        const isRefund = Boolean(order?.isRefund || order?.preset_id?.is_return || vals?.refunded_orderline_id);
+        if (!isRefund && vals && vals.qty < 0 && !opts.force) {
             this.dialog.add(AlertDialog, {
                 title: _t("Negative quantity not allowed"),
                 body: _t("The quantity of the product cannot be negative."),

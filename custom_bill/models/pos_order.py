@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pyrefly: ignore [missing-import]
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
@@ -277,6 +278,41 @@ class PosOrder(models.Model):
             'amount_in_words': self._get_amount_in_words(),
         }
 
+    def _is_refund_or_return_order(self):
+        self.ensure_one()
+        if getattr(self, 'preset_id', False) and getattr(self.preset_id, 'is_return', False):
+            return True
+        if getattr(self, 'refunded_order_id', False):
+            return True
+        return any(bool(l.refunded_orderline_id) for l in self.lines)
+
+    @api.constrains('amount_total')
+    def _check_non_negative_order_total(self):
+        for order in self:
+            if order._is_refund_or_return_order():
+                continue
+            if order.amount_total < -0.01:
+                raise ValidationError(_(
+                    "Order '%s' cannot have a negative bill amount (%.2f) for a non-refund order."
+                ) % (order.name or order.pos_reference or order.id, order.amount_total))
+
+
+class PosOrderLine(models.Model):
+    _inherit = 'pos.order.line'
+
+    @api.constrains('qty', 'refunded_orderline_id')
+    def _check_non_negative_qty(self):
+        for line in self:
+            order = line.order_id
+            if line.refunded_orderline_id:
+                continue
+            if order and order.preset_id and getattr(order.preset_id, 'is_return', False):
+                continue
+            if line.qty < 0:
+                raise ValidationError(_(
+                    "Product '%s' cannot have a negative quantity (%.2f) on a non-refund order."
+                ) % (line.full_product_name or (line.product_id and line.product_id.display_name) or _('Item'), line.qty))
+
 
 class PosPayment(models.Model):
     _inherit = 'pos.payment'
@@ -285,3 +321,15 @@ class PosPayment(models.Model):
         string='NC Reason',
         help='Reason recorded for No Charge (NC) payment'
     )
+
+    @api.constrains('amount')
+    def _check_non_negative_payment_amount(self):
+        for payment in self:
+            if payment.is_change or not payment.pos_order_id:
+                continue
+            if payment.pos_order_id._is_refund_or_return_order():
+                continue
+            if payment.amount < -0.01:
+                raise ValidationError(_(
+                    "Payment amount (%.2f) cannot be negative for a non-refund order."
+                ) % payment.amount)

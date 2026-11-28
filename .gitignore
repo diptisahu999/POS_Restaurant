@@ -3,3 +3,11 @@ __pycache__/
 .DS_Store
 *.log
 *.conf
+*.md
+*.dump
+
+# Scratch files
+scratch/
+
+# API Project (toggle by adding/removing # or use: git add -f project_api/)
+project_api/
