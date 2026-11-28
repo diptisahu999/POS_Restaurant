@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_allow_create_pos_order" model="res.groups">
+        <field name="name">Allow Create POS Orders</field>
+    </record>
+</odoo>
